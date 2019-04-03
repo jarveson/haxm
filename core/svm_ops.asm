@@ -122,27 +122,6 @@
 %endif
 %endmacro
 
-%macro function_get_reg 1
-    function get_%+%1, 0
-    mov reg_ret, %1
-    ret
-%endmacro
-%macro function_set_reg 1
-    function set_%+%1, 1
-    mov %1, reg_arg1
-    ret
-%endmacro
-%macro function_get_segment 1
-    function get_kernel_%+%1, 0
-    mov reg_ret_16, %1
-    ret
-%endmacro
-%macro function_set_segment 1
-    function set_kernel_%+%1, 1
-    mov %1, reg_arg1_16
-    ret
-%endmacro
-
 section .text
 
 struc qword_struct
@@ -150,214 +129,118 @@ struc qword_struct
     .hi      resd 1
 endstruc
 
-struc cpuid_args
-    ._eax    resd 1
-    ._ecx    resd 1
-    ._edx    resd 1
-    ._ebx    resd 1
+struc vcpu_state
+    ._rax    resq 1
+    ._rcx    resq 1
+    ._rdx    resq 1
+    ._rbx    resq 1
+    ._rsp    resq 1
+    ._rbp    resq 1
+    ._rsi    resq 1
+    ._rdi    resq 1
+    ._r8     resq 1
+    ._r9     resq 1
+    ._r10    resq 1
+    ._r11    resq 1
+    ._r12    resq 1
+    ._r13    resq 1
+    ._r14    resq 1
+    ._r15    resq 1
 endstruc
 
-function __nmi, 0
-    int 2h
+
+function asm_clgi, 0
+    clgi
     ret
 
-function asm_fls, 1
-    xor reg_ret_32, reg_ret_32
-    bsr reg_ret_32, reg_arg1_32
+function asm_stgi, 0
+    stgi
     ret
 
-function asm_cpuid, 1
-%ifidn __BITS__, 64
-    push rbx
-    mov r8, reg_arg1
-    mov eax, [r8 + cpuid_args._eax]
-    mov ecx, [r8 + cpuid_args._ecx]
-    cpuid
-    mov [r8 + cpuid_args._eax], eax
-    mov [r8 + cpuid_args._ebx], ebx
-    mov [r8 + cpuid_args._ecx], ecx
-    mov [r8 + cpuid_args._edx], edx
-    pop rbx
-    ret
-%elifidn __BITS__, 32
-    push ebx
-    push esi
-    mov esi, reg_arg1
-    mov eax, [esi + cpuid_args._eax]
-    mov ecx, [esi + cpuid_args._ecx]
-    cpuid
-    mov [esi + cpuid_args._eax], eax
-    mov [esi + cpuid_args._ebx], ebx
-    mov [esi + cpuid_args._ecx], ecx
-    mov [esi + cpuid_args._edx], edx
-    pop esi
-    pop ebx
-    ret
-%else
-    %error "Unimplemented function"
-%endif
-
-function asm_btr, 2
-    lock btr [reg_arg1], reg_arg2
-    ret
-
-function asm_bts, 2
-    lock bts [reg_arg1], reg_arg2
-    ret
-
-function asm_disable_irq, 0
-    cli
-    ret
-
-function asm_enable_irq, 0
-    sti
-    ret
-
-function asm_clts, 0
-    clts
-    ret
-
-function asm_fxinit, 0
-    finit
-    ret
-
-function asm_fxrstor, 1
-    fxrstor [reg_arg1]
-    ret
-
-function asm_fxsave, 1
-    fxsave [reg_arg1]
-    ret
-
-function asm_rdmsr, 2
-%ifidn __BITS__, 64
-    mov rcx, reg_arg1
-    rdmsr
-    shl rdx, 32
-    or reg_ret, rdx
-    ret
-%elifidn __CONV__, x32_cdecl
-    push ebx
-    mov ebx, reg_arg2
-    rdmsr
-    mov [ebx + qword_struct.lo], eax
-    mov [ebx + qword_struct.hi], edx
-    pop ebx
-    ret
-%else
-    %error "Unimplemented function"
-%endif
-
-function asm_rdtsc, 1
-%ifidn __BITS__, 64
-    rdtsc
-    shl rdx, 32
-    or reg_ret, rdx
-    ret
-%elifidn __BITS__, 32
-    rdtsc
-    mov [reg_arg1 + qword_struct.lo], eax
-    mov [reg_arg1 + qword_struct.hi], edx
-    ret
-%else
-    %error "Unimplemented function"
-%endif
-
-function asm_wrmsr, 2
-%ifidn __BITS__, 64
-    push rbx
-    mov rbx, reg_arg2
-    mov rcx, reg_arg1
-    mov eax, ebx
-    mov rdx, rbx
-    shr rdx, 32
-    wrmsr
-    pop rbx
-    ret
-%elifidn __CONV__, x32_cdecl
-    push edi
-    push esi
-    mov edi, [reg_arg2 + qword_struct.lo]
-    mov esi, [reg_arg2 + qword_struct.hi]
-    mov eax, edi
-    mov edx, esi
-    wrmsr
-    pop esi
-    pop edi
-    ret
-%else
-    %error "Unimplemented function"
-%endif
-
-function get_kernel_tr_selector, 0
-    str reg_ret_16
-    ret
-
-function set_kernel_tr_selector, 1
-	ltr reg_arg1_16
+function asm_vmsave, 1
+	mov rax, reg_arg1
+	vmsave
 	ret
 
-function get_kernel_ldt, 0
-    sldt reg_ret_16
+function asm_vmload, 1
+	mov rax, reg_arg1
+	vmload
+	ret
+
+function asm_svmrun, 2
+%ifidn __BITS__, 64
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push rbp
+    push rax
+    push rbx
+    ; push the state
+    push reg_arg1
+	push reg_arg2
+    mov rax, reg_arg1
+    mov rcx, [rax + vcpu_state._rcx]
+    mov rdx, [rax + vcpu_state._rdx]
+    mov rbx, [rax + vcpu_state._rbx]
+    mov rbp, [rax + vcpu_state._rbp]
+    mov rsi, [rax + vcpu_state._rsi]
+    mov rdi, [rax + vcpu_state._rdi]
+    mov r8,  [rax + vcpu_state._r8]
+    mov r9,  [rax + vcpu_state._r9]
+    mov r10, [rax + vcpu_state._r10]
+    mov r11, [rax + vcpu_state._r11]
+    mov r12, [rax + vcpu_state._r12]
+    mov r13, [rax + vcpu_state._r13]
+    mov r14, [rax + vcpu_state._r14]
+    mov r15, [rax + vcpu_state._r15]
+	pop rax
+    vmload
+    vmrun
+	vmsave
+    push rdi
+    mov rdi, [rsp+8]
+    mov [rdi + vcpu_state._rcx], rcx
+    mov [rdi + vcpu_state._rdx], rdx
+    pop rcx
+    mov [rdi + vcpu_state._rbx], rbx
+    mov [rdi + vcpu_state._rbp], rbp
+    mov [rdi + vcpu_state._rsi], rsi
+    mov [rdi + vcpu_state._rdi], rcx
+    mov [rdi + vcpu_state._r8], r8
+    mov [rdi + vcpu_state._r9], r9
+    mov [rdi + vcpu_state._r10], r10
+    mov [rdi + vcpu_state._r11], r11
+    mov [rdi + vcpu_state._r12], r12
+    mov [rdi + vcpu_state._r13], r13
+    mov [rdi + vcpu_state._r14], r14
+    mov [rdi + vcpu_state._r15], r15
+    ; pop the state
+    pop rbx
+    pop rbx
+    pop rax
+    pop rbp
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
     ret
-
-function get_kernel_gdt, 1
-    sgdt [reg_arg1]
-    ret
-
-function get_kernel_idt, 1
-    sidt [reg_arg1]
-    ret
-
-function get_kernel_rflags, 0
-    pushfw
-    pop reg_ret_16
-    ret
-
-function set_kernel_ldt, 1
-    lldt reg_arg1_16
-    ret
-
-function set_kernel_gdt, 1
-    lgdt [reg_arg1]
-    ret
-
-function set_kernel_idt, 1
-    lidt [reg_arg1]
-    ret
-
-function_get_reg cr0
-function_get_reg cr2
-function_get_reg cr3
-function_get_reg cr4
-function_get_reg dr0
-function_get_reg dr1
-function_get_reg dr2
-function_get_reg dr3
-function_get_reg dr6
-function_get_reg dr7
-
-function_set_reg cr0
-function_set_reg cr2
-function_set_reg cr3
-function_set_reg cr4
-function_set_reg dr0
-function_set_reg dr1
-function_set_reg dr2
-function_set_reg dr3
-function_set_reg dr6
-function_set_reg dr7
-
-function_get_segment cs
-function_get_segment ds
-function_get_segment es
-function_get_segment ss
-function_get_segment gs
-function_get_segment fs
-
-function_set_segment cs
-function_set_segment ds
-function_set_segment es
-function_set_segment ss
-function_set_segment gs
-function_set_segment fs
+%else
+    %error "Unimplemented function"
+%endif

@@ -33,7 +33,7 @@
 
 #include "../../include/hax_types.h"
 
-#define CPUID_CACHE_SIZE 6
+#define CPUID_CACHE_SIZE 7
 
 #define CPUID_REG_EAX 0
 #define CPUID_REG_ECX 1
@@ -232,7 +232,9 @@ enum {
 #define FEAT(bit) \
     FEATURE_KEY_LEAF(4, 0x80000001, CPUID_REG_ECX, bit)
     X86_FEATURE_LAHF          = FEAT(0),  /* 0x00000001  LAHF/SAHF Instructions */
+	X86_FEATURE_SVM		      = FEAT(2),  /* 0x00000004  SVM Instructions */
     X86_FEATURE_PREFETCHW     = FEAT(8),  /* 0x00000100  PREFETCH/PREFETCHW instructions */
+	X86_FEATURE_PERFCTREXTCORE= FEAT(23), /* 0x00800000  Extended Performance Core Counters */
 #undef FEAT
 
     /*
@@ -247,6 +249,16 @@ enum {
     X86_FEATURE_PDPE1GB       = FEAT(26), /* 0x04000000  Gibibyte pages */
     X86_FEATURE_RDTSCP        = FEAT(27), /* 0x08000000  RDTSCP Instruction */
     X86_FEATURE_EM64T         = FEAT(29), /* 0x20000000  Long Mode */
+#undef FEAT
+
+#define FEAT(bit) \
+    FEATURE_KEY_LEAF(6, 0x8000000A, CPUID_REG_EDX, bit)
+	X86_FEATURE_SVM_NP        = FEAT(0),  /* 0x00000001  SVM Nested Paging */
+	X86_FEATURE_SVM_LBRVIRT   = FEAT(1),  /* 0x00000002  SVM LBR Virtualization */
+	X86_FEATURE_SVM_LOCK      = FEAT(2),  /* 0x00000004  SVM Lock Bit */
+	X86_FEATURE_SVM_NRIP      = FEAT(3),  /* 0x00000004  NRip save on vmexit */
+	X86_FEATURE_SVM_TSCRATIO  = FEAT(4),  /* 0x00000010  TSC Ratio control */
+	X86_FEATURE_SVM_DECODEASST= FEAT(7),  /* 0x00000010  Decode Assists */
 #undef FEAT
 };
 

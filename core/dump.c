@@ -33,6 +33,8 @@
 #include "include/vmx.h"
 #include "include/dump.h"
 #include "../include/hax.h"
+#include "include/svm.h"
+#include "include/vcpu.h"
 
 static uint32_t dump_vmcs_list[] = {
     VMX_PIN_CONTROLS,
@@ -178,19 +180,86 @@ static uint32_t dump_vmcs_list[] = {
     GUEST_ACTIVITY_STATE,
 };
 
+void dump_svm_info(struct vcpu_t *vcpu) {
+	hax_info("svm dump\n");
+#define dump(field) \
+		hax_info("%s : 0x%llx\n", #field, svm(vcpu)->field); 
+
+	dump(control.intercept_cr);
+	dump(control.intercept_dr);
+	dump(control.intercept_exceptions);
+	dump(control.intercept);
+	dump(control.pause_filter_count);
+	dump(control.iopm_base_pa);
+	dump(control.msrpm_base_pa);
+	dump(control.tsc_offset);
+	dump(control.asid);
+	dump(control.tlb_ctl);
+	dump(control.int_ctl);
+	dump(control.int_vector);
+	dump(control.int_state);
+	dump(control.exit_code);
+	dump(control.exit_code_hi);
+	dump(control.exit_info_1);
+	dump(control.exit_info_2);
+	dump(control.exit_int_info);
+	dump(control.exit_int_info_err);
+	dump(control.nested_ctl);
+	dump(control.event_inj);
+	dump(control.event_inj_err);
+	dump(control.nested_cr3);
+	dump(control.virt_ext);
+	dump(control.clean);
+	dump(control.next_rip);
+	dump(control.insn_len);
+	// todo segments
+	dump(save.cs.attrib);
+	dump(save.cpl);
+	dump(save.efer);
+	dump(save.cr4);
+	dump(save.cr3);
+	dump(save.cr0);
+	dump(save.dr7);
+	dump(save.dr6);
+	dump(save.rflags);
+	dump(save.rip);
+	dump(save.rsp);
+	dump(save.rax);
+	dump(save.star);
+	dump(save.lstar);
+	dump(save.cstar);
+	dump(save.sfmask);
+	dump(save.kernel_gs_base);
+	dump(save.sysenter_cs);
+	dump(save.sysenter_esp);
+	dump(save.sysenter_eip);
+	dump(save.cr2);
+	dump(save.g_pat);
+	dump(save.dbgctl);
+	dump(save.br_from);
+	dump(save.br_to);
+	dump(save.last_excp_from);
+	dump(save.last_excp_to);
+#undef dump
+#undef svm
+}
+
 void dump_vmcs(struct vcpu_t *vcpu)
 {
     uint32_t i, enc, n;
     const char *name;
 
     uint32_t *list = dump_vmcs_list;
-    n = ARRAY_ELEMENTS(dump_vmcs_list);
+	// jake todo:
+    /*n = ARRAY_ELEMENTS(dump_vmcs_list);
 
     for (i = 0; i < n; i++) {
         enc = list[i];
         name = name_vmcs_component(enc);
         vmread_dump(vcpu, enc, name);
-    }
+    }*/
+
+	dump_svm_info(vcpu);
 }
 
 void dump_vmx_info(struct info_t *info)

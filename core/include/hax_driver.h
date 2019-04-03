@@ -54,6 +54,7 @@ struct hax_t {
     uint64_t apm_fixed_mask;
     // Unparsed CPUID leaf 0xa output for CPUID virtualization
     struct cpu_pmu_info apm_cpuid_0xa;
+	uint lbr_support;
 
     hax_list_head hax_vmlist;
     hax_mutex hax_lock;

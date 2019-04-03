@@ -76,6 +76,9 @@ void cpuid_host_init(cpuid_cache_t *cache)
     data[4] = res.ecx;
     data[5] = res.edx;
 
+	cpuid_query_leaf(&res, 0x8000000A);
+	data[6] = res.edx;
+
     cache->initialized = 1;
 }
 

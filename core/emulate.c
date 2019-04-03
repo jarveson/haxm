@@ -150,6 +150,10 @@ static void em_mov(struct em_context_t *ctxt);
 static void em_movzx(struct em_context_t *ctxt);
 static void em_movsx(struct em_context_t *ctxt);
 static void em_xchg(struct em_context_t *ctxt);
+static void em_smsw(struct em_context_t *ctxt);
+static void em_lmsw(struct em_context_t *ctxt);
+static void em_clflush(struct em_context_t *ctxt);
+static void em_clts(struct em_context_t *ctxt);
 
 static const struct em_opcode_t opcode_group1[8] = {
     F(em_add, op_none, op_none, op_none, 0),
@@ -169,6 +173,15 @@ static const struct em_opcode_t opcode_group3[8] = {
     F(em_neg, op_modrm_rm, op_none, op_none, 0),
 };
 
+static const struct em_opcode_t opcode_group7[8] = {
+	X4(N),
+	I(em_smsw, op_modrm_rm, op_none, op_none, 0),
+	X1(N),
+	I(em_lmsw, op_none, op_modrm_rm, op_none, 0),
+	X1(N),
+};
+
+
 static const struct em_opcode_t opcode_group8[8] = {
     X4(N),
     F(em_bt, op_none, op_none, op_none, 0),
@@ -179,6 +192,11 @@ static const struct em_opcode_t opcode_group8[8] = {
 
 static const struct em_opcode_t opcode_group11[8] = {
     I(em_mov, op_none, op_none, op_none, INSN_DST_NR),
+};
+
+static const struct em_opcode_t opcode_group15[8] = {
+	X7(N),
+	I(em_clflush, op_none, op_modrm_rm, op_none, INSN_DST_NW)
 };
 
 static const struct em_opcode_t opcode_table[256] = {
@@ -245,7 +263,14 @@ static const struct em_opcode_t opcode_table[256] = {
 
 static const struct em_opcode_t opcode_table_0F[256] = {
     /* 0x00 - 0x9F */
-    X16(N), X16(N), X16(N), X16(N),
+    X1(N),
+	G(opcode_group7, op_none, op_none, op_none, INSN_MODRM),
+	X4(N),
+	I(em_clts, op_none,op_none, op_none, INSN_DST_NR | INSN_DST_NW),
+	X3(N),
+	X4(N),
+	X2(N),
+	X16(N), X16(N), X16(N),
     X16(N), X16(N), X16(N), X16(N),
     X16(N), X16(N),
     /* 0xA0 - 0xAF */
@@ -253,7 +278,9 @@ static const struct em_opcode_t opcode_table_0F[256] = {
     F(em_bt, op_modrm_rm, op_modrm_reg, op_none, INSN_MODRM | INSN_BITOP),
     X7(N),
     F(em_bts, op_modrm_rm, op_modrm_reg, op_none, INSN_MODRM | INSN_BITOP),
-    X4(N),
+    X2(N),
+	G(opcode_group15, op_none, op_modrm_rm, op_none, 0),
+	X1(N),
     /* 0xB0 - 0xBF */
     X3(N),
     F(em_btr, op_modrm_rm, op_modrm_reg, op_none, INSN_MODRM | INSN_BITOP),
@@ -931,6 +958,24 @@ static void em_xchg(struct em_context_t *ctxt)
     ctxt->src2.value = src1;
     operand_write(ctxt, &ctxt->src1);
     operand_write(ctxt, &ctxt->src2);
+}
+
+static void em_clflush(struct em_context_t *ctxt) {}
+
+static void em_smsw(struct em_context_t *ctxt) {
+	// todo: exception checks
+	ctxt->dst.value = ctxt->ops->get_cr(ctxt->vcpu, 0);
+}
+
+static void em_lmsw(struct em_context_t *ctxt) {
+	uint64_t cr0 = ctxt->ops->get_cr(ctxt->vcpu, 0);
+	ctxt->ops->write_cr(ctxt->vcpu, 0, (cr0 & ~0x0eul) | (ctxt->src1.value & 0x0f));
+}
+
+static void em_clts(struct em_context_t *ctxt) {
+	uint64_t cr0 = ctxt->ops->get_cr(ctxt->vcpu, 0);
+	cr0 &= ~(uint64_t)(1 << 3);
+	ctxt->ops->write_cr(ctxt->vcpu, 0, cr0);
 }
 
 em_status_t EMCALL em_decode_insn(struct em_context_t *ctxt, const uint8_t *insn)

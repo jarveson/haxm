@@ -35,21 +35,25 @@
     <TargetVersion>Windows7</TargetVersion>
     <UseDebugLibraries>True</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetVersion>Windows7</TargetVersion>
     <UseDebugLibraries>False</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetVersion>Windows7</TargetVersion>
     <UseDebugLibraries>True</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetVersion>Windows7</TargetVersion>
     <UseDebugLibraries>False</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
   </PropertyGroup>
   <!-- Needed by any VcxProj -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -78,6 +82,7 @@
   <ItemGroup>
     <NASM Include="..\..\core\emulate_ops.asm" />
     <NASM Include="..\..\core\ia32_ops.asm" />
+    <NASM Include="..\..\core\svm_ops.asm" />
     <NASM Include="..\..\core\vmx_ops.asm" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -128,8 +133,11 @@
     <ClCompile Include="..\..\core\intr_exc.c" />
     <ClCompile Include="..\..\core\memory.c" />
     <ClCompile Include="..\..\core\memslot.c" />
+    <ClCompile Include="..\..\core\npt.c" />
+    <ClCompile Include="..\..\core\npt_tree.c" />
     <ClCompile Include="..\..\core\page_walker.c" />
     <ClCompile Include="..\..\core\ramblock.c" />
+    <ClCompile Include="..\..\core\svm.c" />
     <ClCompile Include="..\..\core\vcpu.c" />
     <ClCompile Include="..\..\core\vm.c" />
     <ClCompile Include="..\..\core\vmx.c" />
@@ -160,6 +168,37 @@
     <None Exclude="@(None)" Include="*.ico;*.cur;*.bmp;*.dlg;*.rct;*.gif;*.jpg;*.jpeg;*.wav;*.jpe;*.tiff;*.tif;*.png;*.rc2" />
     <None Exclude="@(None)" Include="*.def;*.bat;*.hpj;*.asmx" />
     <None Include="packages.haxm-core.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\core\include\compiler.h" />
+    <ClInclude Include="..\..\core\include\config.h" />
+    <ClInclude Include="..\..\core\include\cpu.h" />
+    <ClInclude Include="..\..\core\include\cpuid.h" />
+    <ClInclude Include="..\..\core\include\debug.h" />
+    <ClInclude Include="..\..\core\include\dump.h" />
+    <ClInclude Include="..\..\core\include\emulate.h" />
+    <ClInclude Include="..\..\core\include\emulate_ops.h" />
+    <ClInclude Include="..\..\core\include\ept.h" />
+    <ClInclude Include="..\..\core\include\ept2.h" />
+    <ClInclude Include="..\..\core\include\hax_core_interface.h" />
+    <ClInclude Include="..\..\core\include\hax_driver.h" />
+    <ClInclude Include="..\..\core\include\ia32.h" />
+    <ClInclude Include="..\..\core\include\ia32_defs.h" />
+    <ClInclude Include="..\..\core\include\intr.h" />
+    <ClInclude Include="..\..\core\include\memory.h" />
+    <ClInclude Include="..\..\core\include\mtrr.h" />
+    <ClInclude Include="..\..\core\include\name.h" />
+    <ClInclude Include="..\..\core\include\npt.h" />
+    <ClInclude Include="..\..\core\include\page_walker.h" />
+    <ClInclude Include="..\..\core\include\paging.h" />
+    <ClInclude Include="..\..\core\include\pmu.h" />
+    <ClInclude Include="..\..\core\include\segments.h" />
+    <ClInclude Include="..\..\core\include\svm.h" />
+    <ClInclude Include="..\..\core\include\types.h" />
+    <ClInclude Include="..\..\core\include\vcpu.h" />
+    <ClInclude Include="..\..\core\include\vm.h" />
+    <ClInclude Include="..\..\core\include\vmx.h" />
+    <ClInclude Include="..\..\core\include\vtlb.h" />
   </ItemGroup>
   <!-- /Necessary to pick up proper files from local directory when in the IDE-->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

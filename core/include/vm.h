@@ -36,6 +36,7 @@
 #include "vcpu.h"
 #include "../../include/hax.h"
 
+#include "npt.h"
 #ifdef CONFIG_HAX_EPT2
 #include "memory.h"
 #include "ept2.h"
@@ -76,6 +77,7 @@ struct vm_t {
 #ifdef CONFIG_HAX_EPT2
     hax_gpa_space gpa_space;
     hax_ept_tree ept_tree;
+	hax_npt_tree npt_tree;
     hax_gpa_space_listener gpa_space_listener;
 #endif  // CONFIG_HAX_EPT2
 #ifdef HAX_ARCH_X86_32

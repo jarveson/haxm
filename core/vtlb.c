@@ -781,10 +781,10 @@ retry:
 
 bool handle_vtlb(struct vcpu_t *vcpu)
 {
-    uint32_t access = vmx(vcpu, exit_exception_error_code);
+	uint32_t access = svm(vcpu)->control.exit_info_1;// vmx(vcpu, exit_exception_error_code);
     pagemode_t mode = vcpu_get_pagemode(vcpu);
     hax_paddr_t pdir = vcpu->state->_cr3 & (mode == PM_PAE ? ~0x1fULL : ~0xfffULL);
-    hax_vaddr_t cr2 = vmx(vcpu, exit_qualification).address;
+	hax_vaddr_t cr2 = svm(vcpu)->control.exit_info_2;//vmx(vcpu, exit_qualification).address;
 
     uint32_t ret = vtlb_handle_page_fault(vcpu, mode, pdir, cr2, access);
 
@@ -883,7 +883,7 @@ int mmio_fetch_instruction(struct vcpu_t *vcpu, uint64_t gva, uint8_t *buf, int 
     hax_assert(vcpu != NULL);
     hax_assert(buf != NULL);
     // A valid IA instruction is never longer than 15 bytes
-    hax_assert(len > 0 && len <= 15);
+    hax_assert(len > 0);
     end_gva = gva + (uint)len - 1;
     if ((gva >> PG_ORDER_4K) != (end_gva >> PG_ORDER_4K)) {
         uint32_t ret;

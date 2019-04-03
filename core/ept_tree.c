@@ -596,7 +596,7 @@ out:
     return ret;
 }
 
-void get_pte(hax_ept_tree *tree, uint64_t gfn, int level, hax_epte *epte,
+static void get_pte(hax_ept_tree *tree, uint64_t gfn, int level, hax_epte *epte,
              void *opaque)
 {
     hax_epte *pte;
@@ -662,7 +662,7 @@ void ept_tree_walk(hax_ept_tree *tree, uint64_t gfn, epte_visitor visit_epte,
     hax_assert(ret == 0);
 }
 
-void invalidate_pte(hax_ept_tree *tree, uint64_t gfn, int level, hax_epte *epte,
+static void invalidate_pte(hax_ept_tree *tree, uint64_t gfn, int level, hax_epte *epte,
                     void *opaque)
 {
     hax_epte *pte;

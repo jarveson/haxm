@@ -435,12 +435,12 @@ typedef union exit_qualification_t exit_qualification_t;
 union exit_reason_t {
     uint32_t raw;
     struct {
-        uint32_t basic_reason : 16;
-        uint32_t rsv          : 12;
+		uint32_t basic_reason;// : 16;
+        /*uint32_t rsv          : 12;
         uint32_t pending_mtf  : 1;
         uint32_t vmexit_root  : 1;
         uint32_t vmexit_fail  : 1;
-        uint32_t vmenter_fail : 1;
+        uint32_t vmenter_fail : 1;*/
     };
 };
 

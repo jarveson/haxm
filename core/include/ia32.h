@@ -100,6 +100,7 @@ void ASMCALL asm_disable_irq(void);
 
 uint64_t ASMCALL get_kernel_rflags(void);
 uint16_t ASMCALL get_kernel_tr_selector(void);
+void ASMCALL set_kernel_tr_selector(uint16_t);
 
 void ASMCALL set_kernel_gdt(struct system_desc_t *sys_desc);
 void ASMCALL set_kernel_idt(struct system_desc_t *sys_desc);

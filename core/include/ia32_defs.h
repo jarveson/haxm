@@ -62,7 +62,8 @@ enum {
     CR4_OSFXSR      = (1 <<  9),
     CR4_OSXMMEXCPT  = (1 << 10),
     CR4_VMXE        = (1 << 13),
-    CR4_SMXE        = (1 << 14)
+    CR4_SMXE        = (1 << 14),
+	CR4_OSXSAVE     = (1 << 18)
 };
 
 enum {
@@ -110,10 +111,10 @@ enum {
     IA32_BIOS_UPDT_TRIG          = 0x79,
     IA32_BIOS_SIGN_ID            = 0x8b,
     IA32_SMM_MONITOR_CTL         = 0x9b,
-    IA32_PMC0                    = 0xc1,
-    IA32_PMC1                    = 0xc2,
-    IA32_PMC2                    = 0xc3,
-    IA32_PMC3                    = 0xc4,
+    //IA32_PMC0                    = 0xc1,
+    //IA32_PMC1                    = 0xc2,
+    //IA32_PMC2                    = 0xc3,
+    //IA32_PMC3                    = 0xc4,
     IA32_FSB_FREQ                = 0xcd,
     IA32_MPERF                   = 0xe7,
     IA32_APERF                   = 0xe8,
@@ -126,13 +127,17 @@ enum {
     IA32_MCG_CAP                 = 0x179,
     IA32_MCG_STATUS              = 0x17a,
     IA32_MCG_CTL                 = 0x17b,
-    IA32_PERFEVTSEL0             = 0x186,
-    IA32_PERFEVTSEL1             = 0x187,
-    IA32_PERFEVTSEL2             = 0x188,
-    IA32_PERFEVTSEL3             = 0x189,
+    //IA32_PERFEVTSEL0             = 0x186,
+    //IA32_PERFEVTSEL1             = 0x187,
+    //IA32_PERFEVTSEL2             = 0x188,
+    //IA32_PERFEVTSEL3             = 0x189,
     IA32_PERF_CTL                = 0x199,
     IA32_MISC_ENABLE             = 0x1a0,
     IA32_DEBUGCTL                = 0x1d9,
+	IA32_LASTBRANCHFROMIP        = 0x1db,
+	IA32_LASTBRANCHTOIP          = 0x1dc,
+	IA32_LASTINTFROMIP			 = 0x1dd,
+	IA32_LASTINTTOIP			 = 0x1de,
     IA32_MTRR_PHYSBASE0          = 0x200,
     IA32_MTRR_PHYSMASK0          = 0x201,
     IA32_MTRR_PHYSBASE1          = 0x202,
@@ -209,7 +214,32 @@ enum {
     IA32_FS_BASE                 = 0xc0000100,
     IA32_GS_BASE                 = 0xc0000101,
     IA32_KERNEL_GS_BASE          = 0xc0000102,
-    IA32_TSC_AUX                 = 0xc0000103
+    IA32_TSC_AUX                 = 0xc0000103,
+	MSR_AMD_TSC_RATIO            = 0xc0000104,
+	MSR_AMD_PERFEVTSEL0          = 0xc0010000,
+	MSR_AMD_PERFEVTSEL1          = 0xc0010001,
+	MSR_AMD_PERFEVTSEL2          = 0xc0010002,
+	MSR_AMD_PERFEVTSEL3          = 0xc0010003,
+	MSR_AMD_PMC0			     = 0xc0010004,
+	MSR_AMD_PMC1                 = 0xc0010005,
+	MSR_AMD_PMC2                 = 0xc0010006,
+	MSR_AMD_PMC3                 = 0xc0010007,
+	MSR_SVM_VM_CR                = 0xc0010114,
+	MSR_SVM_VM_HSAVE_PA          = 0xc0010117,
+	MSR_AMD_OSVW_LEN             = 0xc0010140, 
+	MSR_AMD_OSVW                 = 0xc0010141,
+	MSR_AMD_A_PERFEVTSEL0		 = 0xc0010200,
+	MSR_AMD_A_PMC0				 = 0xc0010201,
+	MSR_AMD_A_PERFEVTSEL1		 = 0xc0010202,
+	MSR_AMD_A_PMC1			     = 0xc0010203,
+	MSR_AMD_A_PERFEVTSEL2		 = 0xc0010204,
+	MSR_AMD_A_PMC2               = 0xc0010205,
+	MSR_AMD_A_PERFEVTSEL3		 = 0xc0010206,
+	MSR_AMD_A_PMC3               = 0xc0010207,
+	MSR_AMD_A_PERFEVTSEL4		 = 0xc0010208,
+	MSR_AMD_A_PMC4               = 0xc0010209,
+	MSR_AMD_A_PERFEVTSEL5		 = 0xc001020A,
+	MSR_AMD_A_PMC5				 = 0xc001020B,
 };
 
 // EFER bits
@@ -217,7 +247,8 @@ enum {
     IA32_EFER_SCE = (1u <<  0),
     IA32_EFER_LME = (1u <<  8),
     IA32_EFER_LMA = (1u << 10),
-    IA32_EFER_XD  = (1u << 11)
+    IA32_EFER_XD  = (1u << 11),
+	IA32_EFER_SVM = (1u << 12)
 };
 
 // Feature control MSR bits
@@ -225,6 +256,11 @@ enum {
     FC_LOCKED       = 0x00001,
     FC_VMXON_INSMX  = 0x00002,
     FC_VMXON_OUTSMX = 0x00004
+};
+
+// SVM VM CR MSR bits
+enum {
+	VM_CR_SVMDIS = 0x10,
 };
 
 enum {

@@ -239,7 +239,7 @@ static int handle_set_ram(struct vm_t *vm, uint64_t start_gpa, uint64_t size,
     hax_gpa_space *gpa_space;
     uint64_t start_gfn, npages;
     int ret;
-    hax_ept_tree *ept_tree;
+    hax_npt_tree *npt_tree;
 
     // HAX_RAM_INFO_INVALID indicates that guest physical address range
     // [start_gpa, start_gpa + size) should be unmapped
@@ -279,11 +279,12 @@ static int handle_set_ram(struct vm_t *vm, uint64_t start_gpa, uint64_t size,
     }
     memslot_dump_list(gpa_space);
 
-    ept_tree = &vm->ept_tree;
-    if (!hax_test_and_clear_bit(0, (uint64_t *)&ept_tree->invept_pending)) {
+	// jake todo
+    npt_tree = &vm->npt_tree;
+    if (!hax_test_and_clear_bit(0, (uint64_t *)&npt_tree->invept_pending)) {
         // INVEPT pending flag was set
         hax_info("%s: Invoking INVEPT for VM #%d\n", __func__, vm->vm_id);
-        invept(vm, EPT_INVEPT_SINGLE_CONTEXT);
+		npt_flush_tlb(vm, EPT_INVEPT_SINGLE_CONTEXT);
     }
     return 0;
 }

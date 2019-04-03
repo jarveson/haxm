@@ -55,6 +55,8 @@ struct hstate {
     uint16_t es;
     uint16_t fs;
     uint16_t gs;
+	uint16_t cs;
+	uint16_t tr;
     uint16_t seg_valid;
 #define HOST_SEG_VALID_GS 0x1
 #define HOST_SEG_VALID_FS 0x2
@@ -84,6 +86,7 @@ struct hstate {
     uint64_t dr3;
     uint64_t dr6;
     uint64_t dr7;
+
     // CR0
     bool cr0_ts;
 };
@@ -99,6 +102,7 @@ struct hstate_compare {
 #define VMXON_HAX (1 << 0)
 
 struct per_cpu_data {
+	struct hax_page    *hostvm_page;
     struct hax_page    *vmxon_page;
     struct hax_page    *vmcs_page;
     struct vcpu_t      *current_vcpu;
@@ -145,6 +149,7 @@ struct per_cpu_data {
 
 #define HAX_CPUF_INITIALIZED    0x100
     uint16_t                 cpu_features;
+	bool					 lbr_support;
     info_t                   vmx_info;
     struct                   cpu_pmu_info pmu_info;
 #ifdef  DEBUG_HOST_STATE
@@ -175,6 +180,9 @@ static vmcs_t * current_cpu_vmcs(void)
 void cpu_init_vmx(void *arg);
 void cpu_exit_vmx(void *arg);
 
+void cpu_init_svm(void *arg);
+void cpu_exit_svm(void *arg);
+
 void cpu_pmu_init(void *arg);
 
 void cpu_init_feature_cache(void);
@@ -186,13 +194,20 @@ void hax_clear_panic_log(struct vcpu_t *vcpu);
 vmx_result_t cpu_vmx_run(struct vcpu_t *vcpu, struct hax_tunnel *htun);
 int cpu_vmx_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun);
 
+vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun);
+int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun);
+
 void load_vmcs_common(struct vcpu_t *vcpu);
+void load_vmcb_common(struct vcpu_t *vcpu);
 uint32_t load_vmcs(struct vcpu_t *vcpu, preempt_flag *flags);
 uint32_t put_vmcs(struct vcpu_t *vcpu, preempt_flag *flags);
 uint8_t is_vmcs_loaded(struct vcpu_t *vcpu);
 
 vmx_result_t cpu_vmxroot_leave(void);
 vmx_result_t cpu_vmxroot_enter(void);
+
+vmx_result_t cpu_svmroot_leave(void);
+vmx_result_t cpu_svmroot_enter(void);
 
 extern struct hax_page *io_bitmap_page_a;
 extern struct hax_page *io_bitmap_page_b;

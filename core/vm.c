@@ -146,20 +146,19 @@ struct vm_t * hax_create_vm(int *vm_id)
         hax_error("%s: gpa_space_init() returned %d\n", __func__, ret);
         goto fail0;
     }
-    ret = ept_tree_init(&hvm->ept_tree);
+    ret = npt_tree_init(&hvm->npt_tree);
     if (ret) {
-        hax_error("%s: ept_tree_init() returned %d\n", __func__, ret);
+        hax_error("%s: npt_tree_init() returned %d\n", __func__, ret);
         goto fail0;
     }
 
     hvm->gpa_space_listener.mapping_added = NULL;
-    hvm->gpa_space_listener.mapping_removed = ept_handle_mapping_removed;
-    hvm->gpa_space_listener.mapping_changed = ept_handle_mapping_changed;
-    hvm->gpa_space_listener.opaque = (void *)&hvm->ept_tree;
+    hvm->gpa_space_listener.mapping_removed = npt_handle_mapping_removed;
+    hvm->gpa_space_listener.mapping_changed = npt_handle_mapping_changed;
+    hvm->gpa_space_listener.opaque = (void *)&hvm->npt_tree;
     gpa_space_add_listener(&hvm->gpa_space, &hvm->gpa_space_listener);
 
-    hax_info("%s: Invoking INVEPT for VM %d\n", __func__, hvm->vm_id);
-    invept(hvm, EPT_INVEPT_SINGLE_CONTEXT);
+
 #else  // !CONFIG_HAX_EPT2
     if (!ept_init(hvm))
         goto fail0;
@@ -246,7 +245,7 @@ int hax_teardown_vm(struct vm_t *vm)
     hax_put_vm_mid(vm->vm_id);
 #ifdef CONFIG_HAX_EPT2
     gpa_space_remove_listener(&vm->gpa_space, &vm->gpa_space_listener);
-    ept_tree_free(&vm->ept_tree);
+    npt_tree_free(&vm->npt_tree);
     gpa_space_free(&vm->gpa_space);
 #endif  // CONFIG_HAX_EPT2
     hax_vfree(vm, sizeof(struct vm_t));

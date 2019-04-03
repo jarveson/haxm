@@ -33,6 +33,7 @@
 
 #include "emulate.h"
 #include "vmx.h"
+#include "svm.h"
 #include "mtrr.h"
 #include "vm.h"
 #include "pmu.h"
@@ -242,6 +243,8 @@ struct vcpu_t {
 
 #define vmx(v, field) v->vmx.field
 
+#define svm(v) ((struct vmcb*)vcpu_vmcs_va(v))
+
 struct vcpu_t *vcpu_create(struct vm_t *vm, void *vm_host, int vcpu_id);
 int vcpu_execute(struct vcpu_t *vcpu);
 void vcpu_load_guest_state(struct vcpu_t *vcpu);
@@ -253,7 +256,9 @@ int vtlb_active(struct vcpu_t *vcpu);
 int vcpu_vmexit_handler(struct vcpu_t *vcpu, exit_reason_t exit_reason,
                         struct hax_tunnel *htun);
 void vcpu_vmread_all(struct vcpu_t *vcpu);
+void vcpu_svmread_all(struct vcpu_t *vcpu);
 void vcpu_vmwrite_all(struct vcpu_t *vcpu, int force_vtlb_flush);
+void vcpu_svmset_all(struct vcpu_t *vcpu, int force_vtlb_flush);
 
 int vcpu_teardown(struct vcpu_t *vcpu);
 

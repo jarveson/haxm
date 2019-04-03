@@ -241,9 +241,7 @@ static bool pw_are_reserved_bits_in_pdpte_cleared(PW_PAGE_ENTRY *entry,
 
     if (!is_lme) {
         if (entry->pae_lme_entry.bits.avl_or_res ||
-            entry->pae_lme_entry.bits.exb_or_res ||
-            entry->pae_lme_entry.bits.writable ||
-            entry->pae_lme_entry.bits.user)
+            entry->pae_lme_entry.bits.exb_or_res)
             return false;
     } else {
         if (!is_nxe && entry->pae_lme_entry.bits.exb_or_res)

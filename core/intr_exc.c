@@ -98,7 +98,8 @@ static void hax_inject_intr(struct vcpu_t *vcpu, uint8_t vector)
 {
     uint32_t intr_info;
     intr_info = (1 << 31) | vector;
-    vmwrite(vcpu, VMX_ENTRY_INTERRUPT_INFO, intr_info);
+    //vmwrite(vcpu, VMX_ENTRY_INTERRUPT_INFO, intr_info);
+	svm(vcpu)->control.event_inj = intr_info;
     vcpu_ack_intr(vcpu, vector);
     vcpu->event_injected = 1;
 }
@@ -109,8 +110,9 @@ static void hax_inject_intr(struct vcpu_t *vcpu, uint8_t vector)
  */
 static void hax_enable_intr_window(struct vcpu_t *vcpu)
 {
-    vmx(vcpu, pcpu_ctls) |= INTERRUPT_WINDOW_EXITING;
-    vmwrite(vcpu, VMX_PRIMARY_PROCESSOR_CONTROLS, vmx(vcpu, pcpu_ctls));
+    //vmx(vcpu, pcpu_ctls) |= INTERRUPT_WINDOW_EXITING;
+    //vmwrite(vcpu, VMX_PRIMARY_PROCESSOR_CONTROLS, vmx(vcpu, pcpu_ctls));
+	svm(vcpu)->control.intercept |= SVM_INTERCEPT(SVM_INTERCEPT_VINTR);
 }
 
 /*
@@ -125,10 +127,14 @@ uint hax_intr_is_blocked(struct vcpu_t *vcpu)
     if (!(state->_eflags & EFLAGS_IF))
         return 1;
 
-    intr_status = vmx(vcpu, interruptibility_state).raw;
-    if (intr_status & 3)
-        return 1;
-    return 0;
+	// todo: guest mode check for virtualization?
+
+	return !!(svm(vcpu)->control.int_state & SVM_INTERRUPT_SHADOW_MASK);
+
+    //intr_status = vmx(vcpu, interruptibility_state).raw;
+    //if (intr_status & 3)
+        //return 1;
+    //return 0;
 }
 
 /*
@@ -137,7 +143,7 @@ uint hax_intr_is_blocked(struct vcpu_t *vcpu)
 void hax_handle_idt_vectoring(struct vcpu_t *vcpu)
 {
     uint8_t vector;
-    uint32_t idt_vec = vmread(vcpu, VM_EXIT_INFO_IDT_VECTORING);
+	uint32_t idt_vec = svm(vcpu)->control.exit_int_info;//vmread(vcpu, VM_EXIT_INFO_IDT_VECTORING);
 
     if (idt_vec & 0x80000000) {
         if (!(idt_vec & 0x700)) {
@@ -146,10 +152,11 @@ void hax_handle_idt_vectoring(struct vcpu_t *vcpu)
             hax_set_pending_intr(vcpu, vector);
             hax_debug("extern interrupt is vectoring....vector:%d\n", vector);
         } else {
-            hax_debug("VM Exit @ IDT vectoring, type:%d, vector:%d,"
-                      " error code:%llx\n",
-                      (idt_vec & 0x700) >> 8, idt_vec & 0xff,
-                      vmread(vcpu, VM_EXIT_INFO_IDT_VECTORING_ERROR_CODE));
+			hax_debug("VM Exit @ IDT vectoring, type:%d, vector:%d,"
+				" error code:%llx\n",
+				(idt_vec & 0x700) >> 8, idt_vec & 0xff,
+				svm(vcpu)->control.exit_int_info_err);
+                      //vmread(vcpu, VM_EXIT_INFO_IDT_VECTORING_ERROR_CODE));
         }
     }
 }
@@ -162,7 +169,8 @@ void vcpu_inject_intr(struct vcpu_t *vcpu, struct hax_tunnel *htun)
     uint32_t vector;
     uint32_t intr_info;
 
-    intr_info = vmread(vcpu, VMX_ENTRY_INTERRUPT_INFO);
+    //intr_info = vmread(vcpu, VMX_ENTRY_INTERRUPT_INFO);
+	intr_info = svm(vcpu)->control.event_inj;
     vector = vcpu_get_pending_intrs(vcpu);
     if (hax_valid_vector(vector) && !vcpu->event_injected &&
         !hax_intr_is_blocked(vcpu) && !(intr_info & (1 << 31)))
@@ -194,12 +202,14 @@ static int is_double_fault(uint8_t first_vec, uint8_t second_vec)
 /*
  * Inject faults or exceptions to the virtual processor .
  */
+
 void hax_inject_exception(struct vcpu_t *vcpu, uint8_t vector, uint32_t error_code)
 {
     uint32_t intr_info = 0;
     uint8_t first_vec;
-    uint32_t vect_info = vmx(vcpu, exit_idt_vectoring);
-    uint32_t exit_instr_length = vmx(vcpu, exit_instr_length);
+    //uint32_t vect_info = vmx(vcpu, exit_idt_vectoring);
+	uint32_t vect_info = svm(vcpu)->control.exit_int_info;
+    //uint32_t exit_instr_length = vmx(vcpu, exit_instr_length);
 
     if (vcpu->event_injected == 1)
         hax_debug("Event is injected already!!:\n");
@@ -219,25 +229,30 @@ void hax_inject_exception(struct vcpu_t *vcpu, uint8_t vector, uint32_t error_co
             intr_info |= 1 << 11;
             if (vector == VECTOR_PF) {
                 vcpu->vmcs_pending_entry_error_code = 1;
-                vmx(vcpu, entry_exception_error_code) = error_code;
+				svm(vcpu)->control.event_inj_err = error_code;
+                //vmx(vcpu, entry_exception_error_code) = error_code;
             } else {
-                vmwrite(vcpu, VMX_ENTRY_EXCEPTION_ERROR_CODE, error_code);
+				svm(vcpu)->control.event_inj_err = error_code;
+                //vmwrite(vcpu, VMX_ENTRY_EXCEPTION_ERROR_CODE, error_code);
             }
         }
     }
 
+	// todo: this depends on nrip feature of processor
     if (vector == VECTOR_PF) {
-        vcpu->vmcs_pending_entry_instr_length = 1;
-        vmx(vcpu, entry_instr_length) = exit_instr_length;
+        //vcpu->vmcs_pending_entry_instr_length = 1;
+        //vmx(vcpu, entry_instr_length) = exit_instr_length;
         vcpu->vmcs_pending_entry_intr_info = 1;
-        vmx(vcpu, entry_intr_info).raw = intr_info;
+		svm(vcpu)->control.event_inj = intr_info;
+        //vmx(vcpu, entry_intr_info).raw = intr_info;
         vcpu->vmcs_pending = 1;
     } else {
-        vmwrite(vcpu, VMX_ENTRY_INSTRUCTION_LENGTH, exit_instr_length);
-        vmwrite(vcpu, VMX_ENTRY_INTERRUPT_INFO, intr_info);
+        //vmwrite(vcpu, VMX_ENTRY_INSTRUCTION_LENGTH, exit_instr_length);
+        //vmwrite(vcpu, VMX_ENTRY_INTERRUPT_INFO, intr_info);
+		svm(vcpu)->control.event_inj = intr_info;
     }
 
-    hax_debug("Guest is injecting exception info:%x\n", intr_info);
+    hax_info("Guest is injecting exception info:%x\n", intr_info);
     vcpu->event_injected = 1;
 }
 

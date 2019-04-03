@@ -114,6 +114,9 @@ typedef struct em_vcpu_ops_t {
                                uint64_t *value, uint32_t size);
     em_status_t (*write_memory)(void *vcpu, uint64_t ea, uint64_t *value,
                                 uint32_t size, uint32_t flags);
+	uint64_t (*get_cr)(void* vcpu, uint32_t cr);
+	void (*write_cr)(struct vcpu_state_t *state, uint32_t n, uint64_t val);
+
 } em_vcpu_ops_t;
 
 typedef em_status_t (em_operand_decoder_t)(struct em_context_t *ctxt,
