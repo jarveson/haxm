@@ -83,9 +83,9 @@ uint64_t vm_get_eptp(struct vm_t *vm)
     uint64_t eptp_value;
 
 #ifdef CONFIG_HAX_EPT2
-    eptp_value = vm->ept_tree.eptp.value;
+    eptp_value = vm->npt_tree.ncr3.val;
 #else  // !CONFIG_HAX_EPT2
-    eptp_value = vm->ept->eptp.val;
+    eptp_value = vm->npt->eptp.val;
 #endif  // CONFIG_HAX_EPT2
     return eptp_value;
 }
@@ -160,7 +160,7 @@ struct vm_t * hax_create_vm(int *vm_id)
 
 
 #else  // !CONFIG_HAX_EPT2
-    if (!ept_init(hvm))
+    if (!npt_init(hvm))
         goto fail0;
 #endif  // CONFIG_HAX_EPT2
 
@@ -180,7 +180,7 @@ struct vm_t * hax_create_vm(int *vm_id)
 fail2:
     hax_mutex_free(hvm->vm_lock);
 fail1:
-    ept_free(hvm);
+    npt_free(hvm);
 fail0:
 #ifdef HAX_ARCH_X86_32
     hax_vfree(hvm->hva_list_1,
@@ -238,7 +238,7 @@ int hax_teardown_vm(struct vm_t *vm)
     }
 #endif
 #ifndef CONFIG_HAX_EPT2
-    ept_free(vm);
+    npt_free(vm);
 #endif  // !CONFIG_HAX_EPT2
     hax_vm_free_p2m_map(vm);
     hax_mutex_free(vm->vm_lock);

@@ -126,10 +126,10 @@ void free_cpu_template_vmcs(void)
     for (cpu = 0; cpu < max_cpus; cpu++) {
         if (!cpu_is_online(cpu) || !hax_cpu_data[cpu])
             continue;
-        if (hax_cpu_data[cpu]->vmcs_page) {
-            hax_free_pages(hax_cpu_data[cpu]->vmcs_page);
-            hax_cpu_data[cpu]->vmcs_page = NULL;
-        }
+        //if (hax_cpu_data[cpu]->vmcs_page) {
+        //    hax_free_pages(hax_cpu_data[cpu]->vmcs_page);
+         //   hax_cpu_data[cpu]->vmcs_page = NULL;
+        //}
     }
 }
 
@@ -141,13 +141,13 @@ static int alloc_cpu_template_vmcs(void)
     for (cpu = 0; cpu < max_cpus; cpu++) {
         if (!cpu_is_online(cpu) || !hax_cpu_data[cpu])
             continue;
-        page = (struct hax_page *)hax_alloc_page(0, 1);
-        if (!page) {
-            free_cpu_template_vmcs();
-            return -ENOMEM;
-        }
-        hax_clear_page(page);
-        hax_cpu_data[cpu]->vmcs_page = page;
+        //page = (struct hax_page *)hax_alloc_page(0, 1);
+        //if (!page) {
+        //    free_cpu_template_vmcs();
+        //    return -ENOMEM;
+        //}
+        //hax_clear_page(page);
+        //hax_cpu_data[cpu]->vmcs_page = page;
     }
     return 0;
 }
@@ -666,8 +666,6 @@ static void hax_msr_access_init(void) {
 	int cpu_id;
 	int supportslbr = 0;
 
-	hax->lbr_support = 0;
-
 	for (cpu_id = 0; cpu_id < max_cpus; cpu_id++) {
 		struct per_cpu_data *cpu_data;
 
@@ -681,17 +679,17 @@ static void hax_msr_access_init(void) {
 			continue;
 		}
 		if (cpu_data->lbr_support) {
-			hax->lbr_support = 1;
+			supportslbr = 1;
 			break;
 		}
 	}
-	if (hax->lbr_support) {
+	if (supportslbr) {
 		set_msr_access(IA32_LASTBRANCHFROMIP, 4, true, true);
 	}
 
 	//jake: this could also go somewhere else as its amd/svm specific
-	set_msr_access(IA32_SYSENTER_CS, 3, true, true);
-	set_msr_access(IA32_STAR, 7, true, true);
+	//set_msr_access(IA32_SYSENTER_CS, 3, true, true);
+	//set_msr_access(IA32_STAR, 7, true, true);
 }
 
 int hax_module_init(void)

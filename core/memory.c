@@ -96,7 +96,7 @@ int hax_vm_add_ramblock(struct vm_t *vm, uint64_t start_uva, uint64_t size)
             return -EINVAL;
         }
         hax_mutex_unlock(hax->hax_lock);
-        hax_info("Memory allocation, va:%llx, size:%x\n", *va, size);
+        hax_info("Memory allocation, gva:%llx, size:%x\n", gva, size);
     } else {
         hax_info("spare alloc: mem_limit 0x%llx, size 0x%x, spare_ram 0x%llx\n",
                  hax->mem_limit, size, vm->spare_ramsize);
@@ -279,7 +279,6 @@ static int handle_set_ram(struct vm_t *vm, uint64_t start_gpa, uint64_t size,
     }
     memslot_dump_list(gpa_space);
 
-	// jake todo
     npt_tree = &vm->npt_tree;
     if (!hax_test_and_clear_bit(0, (uint64_t *)&npt_tree->invept_pending)) {
         // INVEPT pending flag was set
@@ -357,7 +356,7 @@ int hax_vm_set_ram(struct vm_t *vm, struct hax_set_ram_info *info)
         if (!hax_core_set_p2m(vm, gpfn, hpfn, hva, info->flags)) {
             return -ENOMEM;
         }
-        if (!ept_set_pte(vm, gpfn << HAX_PAGE_SHIFT, hpfn << HAX_PAGE_SHIFT, emt, perm,
+        if (!npt_set_pte(vm, gpfn << HAX_PAGE_SHIFT, hpfn << HAX_PAGE_SHIFT, emt, perm,
                          &epte_modified)) {
             hax_error("ept_set_pte() failed at gpfn 0x%llx hpfn 0x%llx\n", gpfn,
                       hpfn);
@@ -372,7 +371,7 @@ int hax_vm_set_ram(struct vm_t *vm, struct hax_set_ram_info *info)
         /* Invalidate EPT cache (see IASDM Vol. 3C 28.3.3.4) */
         hax_info("Calling INVEPT after EPT update (pa_start=0x%llx, size=0x%x,"
                  " flags=0x%x)\n", info->pa_start, info->size, info->flags);
-        invept(vm, EPT_INVEPT_SINGLE_CONTEXT);
+        //invept(vm, EPT_INVEPT_SINGLE_CONTEXT);
     }
     return 0;
 #endif  // CONFIG_HAX_EPT2

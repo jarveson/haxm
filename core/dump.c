@@ -181,9 +181,11 @@ static uint32_t dump_vmcs_list[] = {
 };
 
 void dump_svm_info(struct vcpu_t *vcpu) {
-	hax_info("svm dump\n");
+	hax_info("svm dump vcpu: 0x%x\n", vcpu->vcpu_id);
 #define dump(field) \
 		hax_info("%s : 0x%llx\n", #field, svm(vcpu)->field); 
+#define dumps(field) \
+		hax_info("%s : 0x%llx\n", #field, vcpu->state->field); 
 
 	dump(control.intercept_cr);
 	dump(control.intercept_dr);
@@ -213,7 +215,21 @@ void dump_svm_info(struct vcpu_t *vcpu) {
 	dump(control.next_rip);
 	dump(control.insn_len);
 	// todo segments
+	dumps(_rbp);
+	dump(save.ss.selector);
+	dump(save.ss.base);
+	dump(save.ss.limit);
+	dump(save.ss.attrib);
+	dump(save.cs.selector);
+	dump(save.cs.base);
+	dump(save.cs.limit);
 	dump(save.cs.attrib);
+	dump(save.ds.selector);
+	dump(save.ds.base);
+	dump(save.ds.limit);
+	dump(save.ds.attrib);
+	dump(save.idtr.limit);
+	dump(save.idtr.base);
 	dump(save.cpl);
 	dump(save.efer);
 	dump(save.cr4);

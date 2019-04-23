@@ -258,7 +258,8 @@ enum {
 	X86_FEATURE_SVM_LOCK      = FEAT(2),  /* 0x00000004  SVM Lock Bit */
 	X86_FEATURE_SVM_NRIP      = FEAT(3),  /* 0x00000004  NRip save on vmexit */
 	X86_FEATURE_SVM_TSCRATIO  = FEAT(4),  /* 0x00000010  TSC Ratio control */
-	X86_FEATURE_SVM_DECODEASST= FEAT(7),  /* 0x00000010  Decode Assists */
+	X86_FEATURE_SVM_DECODEASST= FEAT(7),  /* 0x00004000  Decode Assists */
+	X86_FEATURE_SVM_AVIC      = FEAT(13),  /* 0x00002000  AVIC */
 #undef FEAT
 };
 

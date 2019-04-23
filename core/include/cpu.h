@@ -46,7 +46,7 @@ struct vcpu_state_t;
 
 typedef uint32_t hax_cpuid_t;  // CPU identifier
 
-#define NR_HMSR 6
+#define NR_HMSR 10
 
 struct hstate {
     /* ldt is not covered by host vmcs area */
@@ -96,7 +96,7 @@ struct hstate_compare {
     uint32_t cs, ds, es, fs, gs, ss, ldt, tr;
     uint32_t cs_avail, ds_avail, es_avail, fs_avail, gs_avail, tr_avail, ss_avail;
     uint64_t sysenter_cs, sysenter_eip, sysenter_esp, efer, pat_msr, fs_msr;
-    uint64_t gs_msr, rflags, rsp;
+	uint64_t gs_msr, rflags;
 };
 
 #define VMXON_HAX (1 << 0)
@@ -104,7 +104,7 @@ struct hstate_compare {
 struct per_cpu_data {
 	struct hax_page    *hostvm_page;
     struct hax_page    *vmxon_page;
-    struct hax_page    *vmcs_page;
+    //struct hax_page    *vmcs_page;
     struct vcpu_t      *current_vcpu;
     hax_paddr_t        other_vmcs;
     hax_cpuid_t        cpu_id;
@@ -150,6 +150,7 @@ struct per_cpu_data {
 #define HAX_CPUF_INITIALIZED    0x100
     uint16_t                 cpu_features;
 	bool					 lbr_support;
+	bool					 decode_assists;
     info_t                   vmx_info;
     struct                   cpu_pmu_info pmu_info;
 #ifdef  DEBUG_HOST_STATE
@@ -171,11 +172,11 @@ static struct per_cpu_data * get_cpu_data(uint32_t cpu_id)
     return hax_cpu_data[cpu_id];
 }
 
-static vmcs_t * current_cpu_vmcs(void)
+/*static vmcs_t * current_cpu_vmcs(void)
 {
     struct per_cpu_data *cpu_data = current_cpu_data();
     return (vmcs_t *)hax_page_va(cpu_data->vmcs_page);
-}
+}*/
 
 void cpu_init_vmx(void *arg);
 void cpu_exit_vmx(void *arg);

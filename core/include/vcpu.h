@@ -221,6 +221,7 @@ struct vcpu_t {
 
     uint64_t cr_pat;
     uint64_t cpuid_features_flag_mask;
+	uint64_t next_rip;
 
     /* Debugging */
     uint32_t debug_control;
@@ -251,6 +252,11 @@ void vcpu_load_guest_state(struct vcpu_t *vcpu);
 void vcpu_save_guest_state(struct vcpu_t *vcpu);
 void vcpu_load_host_state(struct vcpu_t *vcpu);
 void vcpu_save_host_state(struct vcpu_t *vcpu);
+
+#ifdef DEBUG_HOST_STATE
+int vcpu_get_host_state(struct per_cpu_data *vcpu, int pre);
+int compare_host_state(struct vcpu_t* v, struct per_cpu_data *vcpu);
+#endif
 
 int vtlb_active(struct vcpu_t *vcpu);
 int vcpu_vmexit_handler(struct vcpu_t *vcpu, exit_reason_t exit_reason,

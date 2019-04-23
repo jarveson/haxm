@@ -107,6 +107,7 @@ enum {
 
 #define SVM_V_INTR_MASKING_SHIFT 24
 #define SVM_V_INTR_MASKING_MASK (1 << SVM_V_INTR_MASKING_SHIFT)
+#define SVM_V_TPR_MASK 0x0f
 
 #define SVM_V_IRQ_SHIFT 8
 #define SVM_V_IRQ_MASK (1 << SVM_V_IRQ_SHIFT)
@@ -297,33 +298,35 @@ struct PACKED vmcb {
 
 uint32_t svm_msrpm_offset(uint32_t msr);
 
-#define SVM_COMPACTATTRIB(a) ((((a) & 0xF000) >> 4) & 0xFFF)
-#define SVM_EXPANDATTRIB(a) (((a) & 0xF00) << 4)
+#define SVM_COMPACTATTRIB(a) (((((a) & 0xF000) >> 4) | (a & 0xFF)))
+#define SVM_EXPANDATTRIB(a) ((((a) & 0xF00) << 4) | (a & 0xFF))
+//#define SVM_COMPACTATTRIB(a) (((((a) & 0xF000) >> 4)) & 0xFFF)
+//#define SVM_EXPANDATTRIB(a) ((((a) & 0xF00) << 4))
 
 #define SVM_READDESC(save, desc, val)                               \
-        ((val).base  = save.##desc##.base,          \
-         (val).limit = save.##desc##.limit)
+        ((val).base  = save.desc.base,          \
+         (val).limit = save.desc.limit)
 
 #define SVM_READSEG(save, seg, val)                                 \
-        ((val).selector = save.##seg##.selector,    \
-         (val).base     = save.##seg##.base,        \
-         (val).limit    = save.##seg##.limit,       \
-         (val).ar       = SVM_EXPANDATTRIB(save.##seg##.attrib));        
+        ((val).selector = save.seg.selector,    \
+         (val).base     = save.seg.base,        \
+         (val).limit    = save.seg.limit,       \
+         (val).ar       = SVM_EXPANDATTRIB(save.seg.attrib));        
 
 #define SVM_SETSEG(save, seg, val) {                          \
-            save.##seg##.selector = (val).selector; \
-            save.##seg##.base = (val).base;         \
-            save.##seg##.limit = (val).limit;       \
-            save.##seg##.attrib = SVM_COMPACTATTRIB((val).ar);               \
+            save.seg.selector = (val).selector; \
+            save.seg.base = (val).base;         \
+            save.seg.limit = (val).limit;       \
+            save.seg.attrib = SVM_COMPACTATTRIB((val).ar);               \
         }
 
 #define SVM_SETDESC(save, desc, val)                              \
-        (save.##desc##.base = (val).base,           \
-         save.##desc##.limit = (val).limit)
+        (save.desc.base = (val).base,           \
+         save.desc.limit = (val).limit)
 
 
 void ASMCALL asm_clgi(void);
 void ASMCALL asm_stgi(void);
 void ASMCALL asm_vmload(hax_paddr_t vmcb);
 void ASMCALL asm_vmsave(hax_paddr_t vmcb);
-void ASMCALL asm_svmrun(struct vcpu_state_t *state, const hax_paddr_t vmcb);
+void ASMCALL asm_svmrun(struct vcpu_state_t *state, const hax_paddr_t vmcb, const hax_paddr_t hostvmcb);

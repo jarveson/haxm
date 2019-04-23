@@ -293,10 +293,6 @@ function get_kernel_tr_selector, 0
     str reg_ret_16
     ret
 
-function set_kernel_tr_selector, 1
-	ltr reg_arg1_16
-	ret
-
 function get_kernel_ldt, 0
     sldt reg_ret_16
     ret
@@ -313,6 +309,10 @@ function get_kernel_rflags, 0
     pushfw
     pop reg_ret_16
     ret
+
+function set_kernel_tr_selector, 1
+	ltr reg_arg1_16
+	ret
 
 function set_kernel_ldt, 1
     lldt reg_arg1_16

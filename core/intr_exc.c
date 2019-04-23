@@ -67,6 +67,9 @@ void hax_set_pending_intr(struct vcpu_t *vcpu, uint8_t vector)
     uint8_t offset = vector % 32;
     uint8_t nr_word = vector / 32;
 
+	if (nr_word >= 8) {
+		hax_panic_vcpu(vcpu, "nr_word >=8...0x%x\n", nr_word);
+	}
     if (intr_pending[nr_word] & (1 << offset)) {
         hax_debug("vector :%d is already pending.", vector);
         return;

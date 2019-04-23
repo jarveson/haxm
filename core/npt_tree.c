@@ -147,12 +147,10 @@ int npt_tree_init(hax_npt_tree *tree)
 	root_page_kmap->kva = kva;
 
 	tree->root_page = root_page_kmap;
-	tree->pml4e.val = 0;
-	tree->pml4e.valid = 1;
-	tree->pml4e.readWrite = 1;
-	tree->pml4e.user = 1;
-	tree->pml4e.pfn = pfn;
-	hax_info("%s: nptp=0x%llx\n", __func__, tree->pml4e.val);
+	// only 'valid' other bits in this are cachedisable and writethrough, but are being ignored
+	tree->ncr3.val = 0;
+	tree->ncr3.pfn = pfn;
+	hax_info("%s: nptp=0x%llx\n", __func__, tree->ncr3.val);
 	return 0;
 }
 

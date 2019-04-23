@@ -73,6 +73,7 @@ struct vm_t {
     uint16_t bsp_vcpu_id;
     void *vm_host;
     struct hax_ept *ept;
+	struct hax_npt *npt;
     void *p2m_map[MAX_GMEM_G];
 #ifdef CONFIG_HAX_EPT2
     hax_gpa_space gpa_space;

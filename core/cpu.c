@@ -97,10 +97,11 @@ void cpu_init_svm(void *arg) {
 	// check that we have enough asid's for the vpid allocation
 	// jake: todo: just using vm id for asid id, but im really not sure if thats correct -_-
 	// commented out is the algo that vpid uses, which gives each vcpu a unique id, but amd doesnt offer as many bits for asid as intel
-	// ryzen gen 1 gives 0x8000 id's, with nested and older giving 64, change this to do wrapping correctly
+	// ryzen gen 1 gives 0x8000 id's, with nested and older giving at minimum 8, ther is a way to make this work better, but that involves looping the numbers on 
+	// context switching
 	//if (((HAX_MAX_VMS << 8) | HAX_MAX_VCPUS) > num_asids - 1) {
 	if (HAX_MAX_VMS > num_asids - 1) {
-		hax_info("haxm compiled to support more vpids than what processor supports\n");
+		hax_info("haxm compiled to support more vpids than what processor supports: reported: 0x%x\n", num_asids);
 		return;
 	}
 
@@ -109,15 +110,15 @@ void cpu_init_svm(void *arg) {
 		return;
 	}
 
-	if (!cpu_has_feature(X86_FEATURE_SVM_DECODEASST)) {
-		hax_error("svm requires decode assists feature currently\n");
-		return;
-	}
-
 	if (!cpu_has_feature(X86_FEATURE_SVM_NP)) {
 		hax_error("svm requires nested page support\n");
 		return;
 	}
+
+	/*if (!cpu_has_feature(X86_FEATURE_SVM_AVIC)) {
+		hax_error("svm requires avic support currently\n");
+		return;
+	}*/
 
 	osvw = ia32_rdmsr(MSR_AMD_OSVW);
 	if (osvw & (1 << 3)) {
@@ -170,8 +171,8 @@ void cpu_init_svm(void *arg) {
 
 	/* Enable SVME */
 	// todo: should we be locking something here like intel?
-	if (!(efer_msr & IA32_EFER_SVM))
-		ia32_wrmsr(IA32_EFER, efer_msr | IA32_EFER_SVM);
+	//if (!(efer_msr & IA32_EFER_SVM))
+	//	ia32_wrmsr(IA32_EFER, efer_msr | IA32_EFER_SVM);
 
 	vmxon = (vmcs_t *)hax_page_va(cpu_data->vmxon_page);
 
@@ -180,6 +181,7 @@ void cpu_init_svm(void *arg) {
 		ia32_wrmsr(MSR_AMD_TSC_RATIO, 0x0100000000ULL);
 
 	cpu_data->lbr_support = cpu_has_feature(X86_FEATURE_SVM_LBRVIRT);
+	cpu_data->decode_assists = cpu_has_feature(X86_FEATURE_SVM_DECODEASST);
 
 	// cheating and using ept flag
 	cpu_data->vmx_info._ept_cap = 1;
@@ -405,7 +407,7 @@ vmx_result_t cpu_vmx_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
     vmwrite(vcpu, HOST_RIP, (mword)host_rip);
     vcpu->is_running = 1;
 #ifdef  DEBUG_HOST_STATE
-    vcpu_get_host_state(vcpu, 1);
+    vcpu_get_host_state(current_cpu_data(), 1);
 #endif
     /* Must ensure the IRQ is disabled before setting CR2 */
     set_cr2(vcpu->state->_cr2);
@@ -419,8 +421,8 @@ vmx_result_t cpu_vmx_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
     vcpu_load_host_state(vcpu);
 
 #ifdef  DEBUG_HOST_STATE
-    vcpu_get_host_state(vcpu, 0);
-    compare_host_state(vcpu);
+    vcpu_get_host_state(current_cpu_data(), 0);
+    compare_host_state(vcpu, current_cpu_data());
 #endif
 
     if (result != VMX_SUCCEED) {
@@ -438,23 +440,31 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 {
 	/* prepare the RIP */
 	//hax_debug("vm entry!\n");
+	hax_paddr_t hostvmpagepa;
+
+	// disable gif for atomic state switch, processor reenables this on switch
+	asm_clgi();
+
+	hostvmpagepa = hax_page_pa(current_cpu_data()->hostvm_page);
 	vcpu_save_host_state(vcpu);
-	asm_vmsave(hax_page_pa(current_cpu_data()->hostvm_page));
-	//hax_disable_irq();
 
 	// jake: todo: deal with clean bits
 	svm(vcpu)->control.clean = 0;
 
 	vcpu->is_running = 1;
 #ifdef  DEBUG_HOST_STATE
-	vcpu_get_host_state(vcpu, 1);
+	vcpu_get_host_state(current_cpu_data(), 1);
 #endif
 
 	svm(vcpu)->save.rax = vcpu->state->_rax;
-
+	asm_vmsave(hostvmpagepa);
 	vcpu_load_guest_state(vcpu);
-	asm_clgi();
-	asm_svmrun(vcpu->state, vcpu_vmcs_pa(vcpu));
+
+	// irq's might be disabled coming into this function, but we need to enable them
+	// before we run to ensure guest exits from physical? ones. the gif still protects us until switch
+	hax_enable_irq();
+	asm_svmrun(vcpu->state, vcpu_vmcs_pa(vcpu), 0);
+	asm_vmload(hostvmpagepa);
 
 	vcpu->is_running = 0;
 
@@ -465,13 +475,13 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 
 	vcpu_save_guest_state(vcpu);
 	vcpu_load_host_state(vcpu);
-	asm_vmload(hax_page_pa(current_cpu_data()->hostvm_page));
 
+	// reenable gif after we ensured processor is back to host state
 	asm_stgi();
 
 #ifdef  DEBUG_HOST_STATE
-	vcpu_get_host_state(vcpu, 0);
-	compare_host_state(vcpu);
+	vcpu_get_host_state(current_cpu_data(), 0);
+	compare_host_state(vcpu, current_cpu_data());
 #endif
 
 	if (svm(vcpu)->control.exit_int_info != 0) {
@@ -488,6 +498,7 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 		htun->_exit_status = HAX_EXIT_UNKNOWN;
 		return VMX_FAIL_INVALID;
 	}
+
 	return VMX_SUCCEED;
 }
 
@@ -605,9 +616,15 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 			}
 			return -EINVAL;
 		}
+		
+		if (vmcs_err = put_vmcs(vcpu, &flags)) {
+			hax_panic_vcpu(vcpu, "put_vmcs() fail after vmrun. %x\n",
+				vmcs_err);
+			hax_panic_log(vcpu);
+		}
 
 		exit_reason.raw = svm(vcpu)->control.exit_code;
-		hax_info("....exit_reason.raw %x, cpu %d %d\n", exit_reason.raw,
+		hax_debug("....exit_reason.raw %x, cpu %d %d\n", exit_reason.raw,
 			vcpu->cpu_id, hax_cpuid());
 
 		/* XXX Currently we take active save/restore for MSR and FPU, the main
@@ -632,7 +649,9 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 			vcpu, VM_EXIT_INFO_GUEST_PHYSICAL_ADDRESS);
 		vmx(vcpu, interruptibility_state).raw = vmread(
 			vcpu, GUEST_INTERRUPTIBILITY);*/
+		vmx(vcpu, exit_gpa) = 0;
 
+		vcpu->next_rip = svm(vcpu)->control.next_rip;
 		state->_rflags = svm(vcpu)->save.rflags;//vmread(vcpu, GUEST_RFLAGS);
 		state->_rsp = svm(vcpu)->save.rsp;//vmread(vcpu, GUEST_RSP);
 		state->_sysenter_cs = svm(vcpu)->save.sysenter_cs;
@@ -641,6 +660,13 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 		SVM_READSEG(svm(vcpu)->save, cs, state->_cs);
 		SVM_READSEG(svm(vcpu)->save, ds, state->_ds);
 		SVM_READSEG(svm(vcpu)->save, es, state->_es);
+		/*SVM_READSEG(svm(vcpu)->save, fs, state->_fs);
+		SVM_READSEG(svm(vcpu)->save, gs, state->_gs);
+		SVM_READSEG(svm(vcpu)->save, ss, state->_ss);
+		SVM_READSEG(svm(vcpu)->save, ldtr, state->_ldt);
+		SVM_READSEG(svm(vcpu)->save, tr, state->_tr);
+		SVM_READDESC(svm(vcpu)->save, gdtr, state->_gdt);
+		SVM_READDESC(svm(vcpu)->save, idtr, state->_idt);*/
 		vmread_cr(vcpu);
 
 		if (vcpu->nr_pending_intrs > 0 || hax_intr_is_blocked(vcpu))
@@ -649,13 +675,6 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 			htun->ready_for_interrupt_injection = 1;
 
 		vcpu->cur_state = GS_STALE;
-		vmcs_err = put_vmcs(vcpu, &flags);
-		if (vmcs_err) {
-			hax_panic_vcpu(vcpu, "put_vmcs() fail before vmexit. %x\n",
-				vmcs_err);
-			hax_panic_log(vcpu);
-		}
-		hax_enable_irq();
 
 		ret = cpu_vmexit_handler(vcpu, exit_reason, htun);
 		if (ret <= 0)
@@ -817,7 +836,7 @@ void hax_panic_log(struct vcpu_t *vcpu)
 {
     if (!vcpu)
         return;
-    hax_error("log_host_cr4_vmxe: %x\n", log_host_cr4_vmxe);
+   /*hax_error("log_host_cr4_vmxe: %x\n", log_host_cr4_vmxe);
     hax_error("log_host_cr4 %llx\n", log_host_cr4);
     hax_error("log_vmxon_res %x\n", log_vmxon_res);
     hax_error("log_vmxon_addr %llx\n", log_vmxon_addr);
@@ -827,7 +846,7 @@ void hax_panic_log(struct vcpu_t *vcpu)
     hax_error("log_vmclear_err %x\n", log_vmclear_err);
     hax_error("log_vmptrld_err %x\n", log_vmptrld_err);
     hax_error("log_vmoff_no %x\n", log_vmxoff_no);
-    hax_error("log_vmxoff_res %x\n", log_vmxoff_res);
+    hax_error("log_vmxoff_res %x\n", log_vmxoff_res);*/
 }
 
 uint32_t load_vmcs(struct vcpu_t *vcpu, preempt_flag *flags)
@@ -891,10 +910,10 @@ uint32_t put_vmcs(struct vcpu_t *vcpu, preempt_flag *flags)
         goto out;
     }
 
-    if (vcpu)
+    //if (vcpu)
         vmcs_phy = vcpu_vmcs_pa(vcpu);
-    else
-        vmcs_phy = hax_page_pa(cpu_data->vmcs_page);
+   //else
+        //vmcs_phy = hax_page_pa(cpu_data->vmcs_page);
 
     cpu_data->current_vcpu = NULL;
 
@@ -903,6 +922,7 @@ uint32_t put_vmcs(struct vcpu_t *vcpu, preempt_flag *flags)
     if (vcpu && vcpu->is_vmcs_loaded)
         vcpu->is_vmcs_loaded = 0;
 out:
+	hax_enable_irq();
     hax_enable_preemption(flags);
 
     return vmxoff_res;
@@ -1007,6 +1027,7 @@ vmx_result_t cpu_vmxroot_leave(void)
 vmx_result_t cpu_svmroot_leave(void)
 {
 	struct per_cpu_data *cpu_data = current_cpu_data();
+	uint64_t efer_msr;
 	vmx_result_t result = VMX_SUCCEED;
 
 	if (cpu_data->vmm_flag & VMXON_HAX) {
@@ -1023,6 +1044,13 @@ vmx_result_t cpu_svmroot_leave(void)
 		hax_error("NO VMXOFF.......\n");
 #endif
 	}
+	
+
+	efer_msr = ia32_rdmsr(IA32_EFER);
+	if (!cpu_data->host_cr4_vmxe) {
+		ia32_wrmsr(IA32_EFER, efer_msr & (~IA32_EFER_SVM));
+	}
+
 	cpu_data->vmxoff_res = result;
 
 	return result;
@@ -1124,36 +1152,11 @@ vmx_result_t cpu_svmroot_enter(void)
 	uint64_t efer_msr;
 	hax_paddr_t hsave_addr;
 
-	//cpu_data->host_cr4_vmxe = (get_cr4() & CR4_VMXE);
-	//if (cpu_data->host_cr4_vmxe) {
-		if (debug_vmcs_count % 100000 == 0) {
-			hax_debug("host VT has enabled!\n");
-			hax_debug("Cr4 value = 0x%lx\n", get_cr4());
-			log_host_cr4_vmxe = 1;
-			log_host_cr4 = get_cr4();
-		}
-		debug_vmcs_count++;
-	//}
-
-	//set_cr4(get_cr4() | CR4_VMXE);
-	/* HP systems & Mac systems workaround
-	 * When resuming from S3, some HP/Mac set the IA32_FEATURE_CONTROL MSR to
-	 * zero. Setting the lock bit to zero & then doing 'vmxon' would cause a GP.
-	 * As a workaround, when we see this condition, we enable the bits so that
-	 * we can launch vmxon & thereby hax.
-	 * bit 0 - Lock bit
-	 * bit 2 - Enable VMX outside SMX operation
-	 *
-	 * ********* To Do **************************************
-	 * This is the workground to fix BSOD when resume from S3
-	 * The best way is to add one power management handler, and set
-	 * IA32_FEATURE_CONTROL MSR in that PM S3 handler
-	 * *****************************************************
-	 */
 	efer_msr = ia32_rdmsr(IA32_EFER);
+	cpu_data->host_cr4_vmxe = (efer_msr & IA32_EFER_SVM);
+
 	if (!(efer_msr & IA32_EFER_SVM))
 		ia32_wrmsr(IA32_EFER, efer_msr | IA32_EFER_SVM);
-
 
 	hsave_addr = hax_page_pa(cpu_data->vmxon_page);
 	ia32_wrmsr(MSR_SVM_VM_HSAVE_PA, hsave_addr);

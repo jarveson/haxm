@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "hax_win.h"
+#include "../include/ia32_defs.h"
 
 // vcpu.h
 int vcpu_takeoff(struct vcpu_t *vcpu);
@@ -281,6 +282,7 @@ NTSTATUS HaxVcpuControl(PDEVICE_OBJECT DeviceObject,
         case HAX_VCPU_IOCTL_RUN:
             if (vcpu_execute(cvcpu))
                 ret = STATUS_UNSUCCESSFUL;
+			(__writeeflags(__readeflags() | EFLAGS_IF));
             break;
         case HAX_VCPU_IOCTL_SETUP_TUNNEL: {
             struct hax_tunnel_info info, *uinfo;
@@ -442,6 +444,11 @@ NTSTATUS HaxVcpuControl(PDEVICE_OBJECT DeviceObject,
 done:
     Irp->IoStatus.Status = ret;
     Irp->IoStatus.Information = infret;
+
+	if (!(__readeflags() & EFLAGS_IF)) {
+		hax_error("wtf: status was :0x%x\n", irpSp->Parameters.DeviceIoControl.IoControlCode);
+		//DbgBreakPoint();
+	}
 
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     if (cvcpu)

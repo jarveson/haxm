@@ -154,6 +154,8 @@ static void em_smsw(struct em_context_t *ctxt);
 static void em_lmsw(struct em_context_t *ctxt);
 static void em_clflush(struct em_context_t *ctxt);
 static void em_clts(struct em_context_t *ctxt);
+static void em_cr_read(struct em_context_t *ctxt);
+static void em_cr_write(struct em_context_t *ctxt);
 
 static const struct em_opcode_t opcode_group1[8] = {
     F(em_add, op_none, op_none, op_none, 0),
@@ -266,11 +268,20 @@ static const struct em_opcode_t opcode_table_0F[256] = {
     X1(N),
 	G(opcode_group7, op_none, op_none, op_none, INSN_MODRM),
 	X4(N),
-	I(em_clts, op_none,op_none, op_none, INSN_DST_NR | INSN_DST_NW),
+	I(em_clts, op_none, op_none, op_none, INSN_DST_NR | INSN_DST_NW),
 	X3(N),
 	X4(N),
 	X2(N),
-	X16(N), X16(N), X16(N),
+
+	X16(N),
+	
+	I(em_cr_read, op_modrm_rm, op_none, op_none, INSN_MODRM | INSN_DST_NR),
+	N,
+	I(em_cr_write, op_none, op_modrm_rm, op_none, INSN_MODRM),
+	N,
+	X4(N), X8(N),
+
+	X16(N),
     X16(N), X16(N), X16(N), X16(N),
     X16(N), X16(N),
     /* 0xA0 - 0xAF */
@@ -964,7 +975,8 @@ static void em_clflush(struct em_context_t *ctxt) {}
 
 static void em_smsw(struct em_context_t *ctxt) {
 	// todo: exception checks
-	ctxt->dst.value = ctxt->ops->get_cr(ctxt->vcpu, 0);
+	ctxt->dst.value = ctxt->ops->get_cr(ctxt->vcpu, 0) & 0xff;
+	ctxt->dst.size = 2;
 }
 
 static void em_lmsw(struct em_context_t *ctxt) {
@@ -974,8 +986,16 @@ static void em_lmsw(struct em_context_t *ctxt) {
 
 static void em_clts(struct em_context_t *ctxt) {
 	uint64_t cr0 = ctxt->ops->get_cr(ctxt->vcpu, 0);
-	cr0 &= ~(uint64_t)(1 << 3);
+	cr0 &= ~(1ull << 3);
 	ctxt->ops->write_cr(ctxt->vcpu, 0, cr0);
+}
+
+static void em_cr_read(struct em_context_t *ctxt) {
+	ctxt->dst.value = ctxt->ops->get_cr(ctxt->vcpu, ctxt->modrm.reg);
+}
+
+static void em_cr_write(struct em_context_t *ctxt) {
+	ctxt->ops->write_cr(ctxt->vcpu, ctxt->modrm.reg, ctxt->src1.value);
 }
 
 em_status_t EMCALL em_decode_insn(struct em_context_t *ctxt, const uint8_t *insn)

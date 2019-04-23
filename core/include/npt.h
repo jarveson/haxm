@@ -54,13 +54,22 @@ typedef struct hax_pde {
 			uint64_t largePage : 1;
 			uint64_t global : 1; 
 			uint64_t avl : 3;
-			uint64_t pat : 1;
-			uint64_t pfn : 39;
+			//uint64_t pat : 1;
+			uint64_t pfn : 40;
 			uint64_t resv : 11;
 			uint64_t nx : 1;
 		};
 	};
 } hax_pde;
+
+#define INVALID_EPTP ~(uint64_t)0
+
+struct hax_npt {
+	bool is_enabled;
+	struct hax_link_list ept_page_list;
+	struct hax_page *ept_root_page;
+	struct hax_pdpe eptp;
+};
 
 typedef struct hax_npt_page {
 	hax_memdesc_phys memdesc;
@@ -77,13 +86,73 @@ typedef struct hax_npt_page_kmap {
 
 typedef struct hax_npt_tree {
 	hax_list_head page_list;
-	hax_pdpe pml4e;
+	hax_pdpe ncr3;
 	hax_npt_page_kmap freq_pages[HAX_NPT_FREQ_PAGE_COUNT];
 	bool invept_pending;
 	hax_spinlock *lock;
 	hax_npt_page_kmap* root_page;
 	// TODO: pointer to vm_t?
 } hax_npt_tree;
+
+/* 4 bits are avaiable for software use. */
+#define EPT_TYPE_NONE  0
+#define EPT_TYPE_MEM   0x1
+#define EPT_TYPE_MMIO  0x2
+#define EPT_TYPE_ROM   0x3
+#define EPT_TYPE_RSVD  0x4
+
+/* FIXME: Only support 4-level EPT page table. */
+#define EPT_DEFAULT_GAW 3
+
+/* Support up to 14G memory for the guest */
+#define EPT_PRE_ALLOC_PAGES 16
+
+/* Two pages used to build up to 2-level table */
+#define EPT_MAX_MEM_G MAX_GMEM_G
+
+#define EPT_PRE_ALLOC_PG_ORDER 4
+/* 2 ^ EPT_PRE_ALLOC_PG_ORDER = EPT_PRE_ALLOC_PAGES */
+
+
+static inline bool npte_is_present(hax_pdpe *entry)
+{
+	return entry->valid;
+}
+
+static inline hax_paddr_t npte_get_address(hax_pdpe *entry)
+{
+	return (entry->pfn << 12);
+}
+
+static inline uint npte_get_perm(hax_pdpe *entry)
+{
+	return (uint)entry->readWrite;
+}
+
+static void npte_set_entry(hax_pdpe *entry, hax_paddr_t addr, uint perm, uint emt)
+{
+	entry->val = 0;
+	entry->pfn = addr >> 12;
+	entry->valid = 1;
+	entry->readWrite = 1;
+	entry->user = 1;
+}
+
+static inline uint npt_get_pde_idx(hax_paddr_t gpa)
+{
+	return ((gpa >> 21) & 0x1ff);
+}
+
+static inline uint npt_get_pte_idx(hax_paddr_t gpa)
+{
+	return ((gpa >> 12) & 0x1ff);
+}
+
+bool npt_init(struct vm_t *hax_vm);
+void npt_free(struct vm_t *hax_vm);
+bool npt_translate(struct vcpu_t *vcpu, hax_paddr_t gpa, uint order, hax_paddr_t *hpa);
+bool npt_set_pte(struct vm_t *hax_vm, hax_paddr_t gpa, hax_paddr_t hpa, uint emt,
+	uint mem_type, bool *is_modified);
 
 
 // Initializes the given |hax_npt_tree|. This includes allocating the root

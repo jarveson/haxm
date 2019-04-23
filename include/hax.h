@@ -56,6 +56,8 @@ struct vcpu_t;
 // is considered stable.
 #define CONFIG_HAX_EPT2
 
+//#define DEBUG_HOST_STATE
+
 /* TBD */
 #define for_each_vcpu(vcpu, vm)
 

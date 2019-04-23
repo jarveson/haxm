@@ -145,6 +145,9 @@ void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
 
 	// jake
 	// todo: check feature and flush by asid
+	// this should do an the smp_call for an ipi probably so all vcpu's are in alignment
+	return;
+
 	switch (type) {
 	case NPT_FLUSH_SINGLE_CONTEXT: {
 		type = NPT_FLUSH_ALL_CONTEXT;
@@ -159,8 +162,12 @@ void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
 	struct vcpu_t *vcpu = NULL;
 	hax_list_head *list;
 
+	if (hax_vm->vm_lock)
+		hax_mutex_lock(hax_vm->vm_lock);
 	hax_list_for_each(list, (hax_list_head *)(&hax_vm->vcpu_list)) {
 		vcpu = hax_list_entry(vcpu_list, struct vcpu_t, list);
 		svm(vcpu)->control.tlb_ctl = TLB_CONTROL_FLUSH_ALL_ASID;
 	}
+	if (hax_vm->vm_lock)
+		hax_mutex_unlock(hax_vm->vm_lock);
 }

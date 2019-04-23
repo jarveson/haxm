@@ -224,6 +224,9 @@ enum {
 	MSR_AMD_PMC1                 = 0xc0010005,
 	MSR_AMD_PMC2                 = 0xc0010006,
 	MSR_AMD_PMC3                 = 0xc0010007,
+	MSR_K8_TOP_MEM1				 = 0xc001001a,
+	MSR_K8_TOP_MEM2              = 0xc001001d,
+	MSR_K8_INT_PENDING_MSG       = 0xc0010055,
 	MSR_SVM_VM_CR                = 0xc0010114,
 	MSR_SVM_VM_HSAVE_PA          = 0xc0010117,
 	MSR_AMD_OSVW_LEN             = 0xc0010140, 
@@ -240,6 +243,7 @@ enum {
 	MSR_AMD_A_PMC4               = 0xc0010209,
 	MSR_AMD_A_PERFEVTSEL5		 = 0xc001020A,
 	MSR_AMD_A_PMC5				 = 0xc001020B,
+	MSR_IBS_OP_CTL               = 0xC0011033,
 };
 
 // EFER bits
