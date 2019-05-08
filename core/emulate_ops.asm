@@ -210,11 +210,13 @@ fastop_dispatch:
     mov reg_dst, [ebx]
     mov reg_src1, [esi]
     mov reg_src2, [edi]
+	pushf
     push dword [ebp]
     popf
-    call stack_arg(0)
+    call stack_arg(1)
     pushf
     pop dword [ebp]
+	popf
     mov [ebx], reg_dst
     pop ebp
     pop edi
@@ -237,11 +239,13 @@ fastop_dispatch:
     mov reg_dst, [rsi]
     mov reg_src1, [r10]
     mov reg_src2, [r11]
+	pushf
     push qword [r8]
     popf
     call rdi
     pushf
     pop qword [r8]
+	popf
     mov [rsi], reg_dst
     ret
 %undef stack_arg
@@ -262,11 +266,13 @@ fastop_dispatch:
     mov reg_dst, [r11]
     mov reg_src1, [r8]
     mov reg_src2, [r9]
+	pushf
     push qword [r12]
     popf
     call r10
     pushf
     pop qword [r12]
+	popf
     mov [r11], reg_dst
     pop r12
     ret

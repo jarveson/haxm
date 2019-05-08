@@ -1891,7 +1891,7 @@ int vcpu_vmexit_handler(struct vcpu_t *vcpu, exit_reason_t exit_reason,
 
     vcpu->event_injected = 0;
 
-    if (basic_reason < nr_handlers && handler_funcs[basic_reason] != NULL) {
+    if (basic_reason < (uint)nr_handlers && handler_funcs[basic_reason] != NULL) {
         ret = handler_funcs[basic_reason](vcpu, htun);
 	}
 	else if (basic_reason == -1){
@@ -2783,7 +2783,7 @@ static int exit_exc_nmi(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 
     switch (htun->_exit_reason) {
         case VECTOR_NMI: {
-            __nmi();
+            //__nmi();
             return HAX_RESUME;
         }
         case SVM_EXIT_EXCP_BASE + VECTOR_PF: {

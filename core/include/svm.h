@@ -329,4 +329,4 @@ void ASMCALL asm_clgi(void);
 void ASMCALL asm_stgi(void);
 void ASMCALL asm_vmload(hax_paddr_t vmcb);
 void ASMCALL asm_vmsave(hax_paddr_t vmcb);
-void ASMCALL asm_svmrun(struct vcpu_state_t *state, const hax_paddr_t vmcb, const hax_paddr_t hostvmcb);
+void ASMCALL asm_svmrun(struct vcpu_state_t *state, const hax_paddr_t vmcb);

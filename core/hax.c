@@ -346,7 +346,7 @@ static int hax_vmx_enable_check(void)
 static int hax_svm_init(void) {
 	int ret = -ENOMEM;
 
-	io_bitmap_page_a = (struct hax_page *)hax_alloc_pages(1, 0, 2);
+	io_bitmap_page_a = (struct hax_page *)hax_alloc_pages(2, 0, 1);
 	if (!io_bitmap_page_a)
 		return -ENOMEM;
 	memset(hax_page_va(io_bitmap_page_a), 0xff, HAX_PAGE_SIZE * (1 << io_bitmap_page_a->order));

@@ -141,12 +141,18 @@ int npt_handle_access_violation(hax_gpa_space *gpa_space, hax_npt_tree *tree,
 	return 1;
 }
 
+static void npt_flush_tlb_smpfunc(void* null) {
+	struct per_cpu_data* cpu_data;
+	hax_smp_mb();
+
+	//jake: todo, throw a flag to single npt flush once tlb is 'enabled'
+	// currently its just hardcoded to flush everytime to avoid issues
+}
+
 void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
 
 	// jake
 	// todo: check feature and flush by asid
-	// this should do an the smp_call for an ipi probably so all vcpu's are in alignment
-	return;
 
 	switch (type) {
 	case NPT_FLUSH_SINGLE_CONTEXT: {
@@ -159,7 +165,9 @@ void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
 	}
 	}
 
-	struct vcpu_t *vcpu = NULL;
+	hax_smp_call_function(&cpu_online_map, (void (*)(void*))npt_flush_tlb_smpfunc, NULL);
+
+	/*struct vcpu_t *vcpu = NULL;
 	hax_list_head *list;
 
 	if (hax_vm->vm_lock)
@@ -170,4 +178,5 @@ void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
 	}
 	if (hax_vm->vm_lock)
 		hax_mutex_unlock(hax_vm->vm_lock);
+	*/
 }

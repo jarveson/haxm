@@ -463,7 +463,7 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 	// irq's might be disabled coming into this function, but we need to enable them
 	// before we run to ensure guest exits from physical? ones. the gif still protects us until switch
 	hax_enable_irq();
-	asm_svmrun(vcpu->state, vcpu_vmcs_pa(vcpu), 0);
+	asm_svmrun(vcpu->state, vcpu_vmcs_pa(vcpu));
 	asm_vmload(hostvmpagepa);
 
 	vcpu->is_running = 0;
@@ -477,6 +477,8 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 	vcpu_load_host_state(vcpu);
 
 	// reenable gif after we ensured processor is back to host state
+	// but leave irqs disabled until svm is turned off
+	hax_disable_irq();
 	asm_stgi();
 
 #ifdef  DEBUG_HOST_STATE
