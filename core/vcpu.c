@@ -2783,7 +2783,7 @@ static int exit_exc_nmi(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 
     switch (htun->_exit_reason) {
         case VECTOR_NMI: {
-            //__nmi();
+            __nmi();
             return HAX_RESUME;
         }
         case SVM_EXIT_EXCP_BASE + VECTOR_PF: {

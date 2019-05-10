@@ -623,6 +623,7 @@ static void hax_pmu_init(void)
 		// todo: redo msr access here
         set_msr_access(MSR_AMD_PMC0, hax->apm_general_count, true, true);
         set_msr_access(MSR_AMD_PERFEVTSEL0, hax->apm_general_count, true, true);
+		set_msr_access(MSR_AMD_A_PERFEVTSEL0, hax->apm_general_count * 2, true, true);
 
         if (hax->apm_version > 1) {
             hax->apm_fixed_count =
@@ -688,8 +689,9 @@ static void hax_msr_access_init(void) {
 	}
 
 	//jake: this could also go somewhere else as its amd/svm specific
-	//set_msr_access(IA32_SYSENTER_CS, 3, true, true);
-	//set_msr_access(IA32_STAR, 7, true, true);
+	set_msr_access(IA32_SYSENTER_CS, 3, true, true);
+	set_msr_access(IA32_STAR, 4, true, true);
+	set_msr_access(IA32_FS_BASE, 3, true, true);
 }
 
 int hax_module_init(void)

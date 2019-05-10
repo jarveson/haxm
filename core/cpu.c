@@ -441,11 +441,18 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 	/* prepare the RIP */
 	//hax_debug("vm entry!\n");
 	hax_paddr_t hostvmpagepa;
-
+	struct per_cpu_data* cpu_data = current_cpu_data();
 	// disable gif for atomic state switch, processor reenables this on switch
 	asm_clgi();
 
-	hostvmpagepa = hax_page_pa(current_cpu_data()->hostvm_page);
+	hostvmpagepa = hax_page_pa(cpu_data->hostvm_page);
+
+	// jake: todo,  theres probly more things that this check needs to do, but since each vm gets its own id, it should be fine
+	if (cpu_data->invept_res != 0) {
+		svm(vcpu)->control.tlb_ctl = TLB_CONTROL_FLUSH_ALL_ASID;
+		cpu_data->invept_res = 0;
+	}
+
 	vcpu_save_host_state(vcpu);
 
 	// jake: todo: deal with clean bits
@@ -470,11 +477,12 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 
 	vcpu->state->_rax = svm(vcpu)->save.rax;
 	vcpu->state->_cr2 = svm(vcpu)->save.cr2;
-	// todo:
-	//svm(vcpu)->control.tlb_ctl = 0;
+	svm(vcpu)->control.tlb_ctl = 0;
 
 	vcpu_save_guest_state(vcpu);
 	vcpu_load_host_state(vcpu);
+
+	vcpu->prev_cpu_id = vcpu->cpu_id;
 
 	// reenable gif after we ensured processor is back to host state
 	// but leave irqs disabled until svm is turned off
@@ -618,12 +626,6 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 			}
 			return -EINVAL;
 		}
-		
-		if (vmcs_err = put_vmcs(vcpu, &flags)) {
-			hax_panic_vcpu(vcpu, "put_vmcs() fail after vmrun. %x\n",
-				vmcs_err);
-			hax_panic_log(vcpu);
-		}
 
 		exit_reason.raw = svm(vcpu)->control.exit_code;
 		hax_debug("....exit_reason.raw %x, cpu %d %d\n", exit_reason.raw,
@@ -662,9 +664,9 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 		SVM_READSEG(svm(vcpu)->save, cs, state->_cs);
 		SVM_READSEG(svm(vcpu)->save, ds, state->_ds);
 		SVM_READSEG(svm(vcpu)->save, es, state->_es);
-		/*SVM_READSEG(svm(vcpu)->save, fs, state->_fs);
+		SVM_READSEG(svm(vcpu)->save, fs, state->_fs);
 		SVM_READSEG(svm(vcpu)->save, gs, state->_gs);
-		SVM_READSEG(svm(vcpu)->save, ss, state->_ss);
+		/*SVM_READSEG(svm(vcpu)->save, ss, state->_ss);
 		SVM_READSEG(svm(vcpu)->save, ldtr, state->_ldt);
 		SVM_READSEG(svm(vcpu)->save, tr, state->_tr);
 		SVM_READDESC(svm(vcpu)->save, gdtr, state->_gdt);
@@ -677,6 +679,14 @@ int cpu_svm_execute(struct vcpu_t *vcpu, struct hax_tunnel *htun) {
 			htun->ready_for_interrupt_injection = 1;
 
 		vcpu->cur_state = GS_STALE;
+
+		vmcs_err = put_vmcs(vcpu, &flags);
+		if (vmcs_err) {
+			hax_panic_vcpu(vcpu, "put_vmcs() fail before vmexit. %x\n",
+				vmcs_err);
+			hax_panic_log(vcpu);
+		}
+		hax_enable_irq();
 
 		ret = cpu_vmexit_handler(vcpu, exit_reason, htun);
 		if (ret <= 0)
@@ -880,7 +890,7 @@ uint32_t load_vmcs(struct vcpu_t *vcpu, preempt_flag *flags)
     if (vcpu) {
         vcpu->is_vmcs_loaded = 1;
         cpu_data->current_vcpu = vcpu;
-        vcpu->prev_cpu_id = vcpu->cpu_id;
+        //vcpu->prev_cpu_id = vcpu->cpu_id;
         vcpu->cpu_id = hax_cpuid();
     }
 

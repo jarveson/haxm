@@ -142,11 +142,10 @@ int npt_handle_access_violation(hax_gpa_space *gpa_space, hax_npt_tree *tree,
 }
 
 static void npt_flush_tlb_smpfunc(void* null) {
-	struct per_cpu_data* cpu_data;
+	struct per_cpu_data* cpu_data = current_cpu_data();
 	hax_smp_mb();
 
-	//jake: todo, throw a flag to single npt flush once tlb is 'enabled'
-	// currently its just hardcoded to flush everytime to avoid issues
+	cpu_data->invept_res = 1;
 }
 
 void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
