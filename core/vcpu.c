@@ -636,6 +636,7 @@ static void vcpu_init(struct vcpu_t *vcpu)
     vcpu->ref_count = 1;
 
     vcpu->tsc_offset = 0ULL - ia32_rdtsc();
+	vcpu->tsc_scaling_ratio = SVM_DEFAULT_TSC_RATIO;
 
     // Prepare the vcpu state to Power-up
     state->_rflags = 2;
@@ -1072,6 +1073,10 @@ void load_guest_msr(struct vcpu_t *vcpu)
         ia32_wrmsr(IA32_TSC_AUX, gstate->tsc_aux);
     }
 
+	if (cpu_has_feature(X86_FEATURE_SVM_TSCRATIO)) {
+		ia32_wrmsr(MSR_AMD_TSC_RATIO, vcpu->tsc_scaling_ratio);
+	}
+
     if (!hax->apm_version)
         return;
 
@@ -1128,6 +1133,10 @@ static void load_host_msr(struct vcpu_t *vcpu)
     if (cpu_has_feature(X86_FEATURE_RDTSCP)) {
         ia32_wrmsr(IA32_TSC_AUX, hstate->tsc_aux);
     }
+
+	if (cpu_has_feature(X86_FEATURE_SVM_TSCRATIO)) {
+		ia32_wrmsr(MSR_AMD_TSC_RATIO, SVM_DEFAULT_TSC_RATIO);
+	}
 
     if (!hax->apm_version)
         return;
@@ -2410,8 +2419,25 @@ static void vcpu_enter_fpu_state(struct vcpu_t *vcpu)
     // (#NM) exception, which can result in a host kernel panic on NetBSD.
     hax_clts();
 
-    hax_fxsave((mword *)hfx);
-    hax_fxrstor((mword *)gfx);
+	if (cpu_has_feature(X86_FEATURE_XSAVE))
+	{
+		hstate->prevxstatebv = hax_xgetbv();
+		hstate->prevosxsave = !!(get_cr4() & CR4_OSXSAVE);
+		if (hstate->prevxstatebv < 0x7) {
+
+			if (!hstate->prevosxsave)
+				set_cr4(get_cr4() | CR4_OSXSAVE);
+
+			hax_xsetbv(0x7, 0);
+		}
+
+		hax_xsave((mword*)hfx);
+		hax_xrstor((mword*)gfx);
+	}
+	else {
+		hax_fxsave((mword*)hfx);
+		hax_fxrstor((mword*)gfx);
+	}
 }
 
 static void vcpu_exit_fpu_state(struct vcpu_t *vcpu)
@@ -2423,8 +2449,22 @@ static void vcpu_exit_fpu_state(struct vcpu_t *vcpu)
 
     hax_clts();
 
-    hax_fxsave((mword *)gfx);
-    hax_fxrstor((mword *)hfx);
+	if (cpu_has_feature(X86_FEATURE_XSAVE))
+	{
+		hax_xsave((mword*)gfx);
+		hax_xrstor((mword*)hfx);
+
+		if (hstate->prevxstatebv < 0x7) {
+			hax_xsetbv(hstate->prevxstatebv, 0);
+		}
+
+		if (!hstate->prevosxsave)
+			set_cr4(get_cr4() & ~CR4_OSXSAVE);
+	}
+	else {
+		hax_fxsave((mword*)gfx);
+		hax_fxrstor((mword*)hfx);
+	}
 
     if (hstate->cr0_ts) {
         set_cr0(get_cr0() | CR0_TS);
@@ -2811,8 +2851,10 @@ static int exit_exc_nmi(struct vcpu_t *vcpu, struct hax_tunnel *htun)
             break;
         }
 		case SVM_EXIT_EXCP_BASE + VECTOR_UD: {
-			//hax_error("undefined opcode\n");
-			return vcpu_emulate_insn(vcpu);
+			hax_panic_vcpu(vcpu, "undefined opcode\n");
+			stack_dump(vcpu);
+			dump_vmcs(vcpu);
+			//return vcpu_emulate_insn(vcpu);
 			break;
 		}
 		case SVM_EXIT_EXCP_BASE + VECTOR_GP: {
@@ -3120,7 +3162,7 @@ static void handle_cpuid_virtual(struct vcpu_t *vcpu, uint32_t a, uint32_t c)
 			return;
         case 7:                         // Structured Extended Feature Flags
             // Unsupported
-			state->_eax = state->_ebx = state->_ecx = state->_edx = 0;
+			//state->_eax = state->_ebx = state->_ecx = state->_edx = 0;
             // Leaf 8 is undefined
 			return;
         case 9: {                       // Direct Cache Access Information
@@ -4229,23 +4271,18 @@ static int handle_msr_write(struct vcpu_t *vcpu, uint32_t msr, uint64_t val)
             break;
         }
         case IA32_STAR:
-			hax_error("star msr 0x%llx\n", val);
 			svm(vcpu)->save.star = val;
 			break;
         case IA32_LSTAR:
-			hax_error("lstar msr 0x%llx\n", val);
 			svm(vcpu)->save.lstar = val;
 			break;
         case IA32_CSTAR:
-			hax_error("cstar msr 0x%llx\n", val);
 			svm(vcpu)->save.cstar = val;
 			break;
         case IA32_SF_MASK:
-			hax_error("sfmask msr 0x%llx\n", val);
 			svm(vcpu)->save.sfmask = val;
 			break;
         case IA32_KERNEL_GS_BASE: {
-			hax_error("kernel gsbase msr 0x%llx\n", val);
 			svm(vcpu)->save.kernel_gs_base = val;
 			break;
         }

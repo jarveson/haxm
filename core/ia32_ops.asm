@@ -229,6 +229,36 @@ function asm_fxsave, 1
     fxsave [reg_arg1]
     ret
 
+function asm_xsave, 1
+	mov rcx, reg_arg1
+	xor edx, edx
+	mov eax, 0x7
+	xsave [rcx]
+	ret
+
+function asm_xrstor, 1
+	mov rcx, reg_arg1
+	xor edx, edx
+	mov eax, 0x7
+	xrstor [rcx]
+	ret
+
+function asm_xsetbv, 2
+	push reg_arg1
+	push reg_arg2
+	pop rdx
+	pop rax
+	xor ecx, ecx
+	xsetbv
+	ret
+
+function asm_xgetbv, 0
+	xor ecx, ecx
+	xgetbv
+	shl rdx, 32
+	or rax, rdx
+	ret
+
 function asm_rdmsr, 2
 %ifidn __BITS__, 64
     mov rcx, reg_arg1

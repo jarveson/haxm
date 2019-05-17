@@ -112,6 +112,8 @@ enum {
 #define SVM_V_IRQ_SHIFT 8
 #define SVM_V_IRQ_MASK (1 << SVM_V_IRQ_SHIFT)
 
+#define SVM_DEFAULT_TSC_RATIO 0x0100000000ULL
+
 enum {
 	SVM_EXIT_READ_CR0     = 0x000,
 	SVM_EXIT_READ_CR3     = 0x003,

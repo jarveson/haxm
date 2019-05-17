@@ -178,7 +178,7 @@ void cpu_init_svm(void *arg) {
 
 	// just define as default, this is probably unnecessary
 	if (cpu_has_feature(X86_FEATURE_SVM_TSCRATIO))
-		ia32_wrmsr(MSR_AMD_TSC_RATIO, 0x0100000000ULL);
+		ia32_wrmsr(MSR_AMD_TSC_RATIO, SVM_DEFAULT_TSC_RATIO);
 
 	cpu_data->lbr_support = cpu_has_feature(X86_FEATURE_SVM_LBRVIRT);
 	cpu_data->decode_assists = cpu_has_feature(X86_FEATURE_SVM_DECODEASST);

@@ -692,6 +692,7 @@ static void hax_msr_access_init(void) {
 	set_msr_access(IA32_SYSENTER_CS, 3, true, true);
 	set_msr_access(IA32_STAR, 4, true, true);
 	set_msr_access(IA32_FS_BASE, 3, true, true);
+	set_msr_access(IA32_DEBUGCTL, 1, true, true);
 }
 
 int hax_module_init(void)

@@ -101,6 +101,26 @@ void hax_fxrstor(mword *addr)
     asm_fxrstor(addr);
 }
 
+void hax_xsave(mword* addr)
+{
+	asm_xsave(addr);
+}
+
+void hax_xrstor(mword* addr)
+{
+	asm_xrstor(addr);
+}
+
+void hax_xsetbv(uint32_t low, uint32_t high)
+{
+	asm_xsetbv(low, high);
+}
+
+uint64_t hax_xgetbv()
+{
+	return asm_xgetbv();
+}
+
 void btr(uint8_t *addr, uint bit)
 {
     // asm_btr() may not be able to handle bit offsets greater than 0xff. For

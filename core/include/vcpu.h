@@ -207,6 +207,7 @@ struct vcpu_t {
 
     /* For TSC offseting feature*/
     int64_t tsc_offset;
+	uint64_t tsc_scaling_ratio;
 
     /* vmx control and states */
     struct vcpu_vmx_data vmx;

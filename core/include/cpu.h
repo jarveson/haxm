@@ -89,6 +89,10 @@ struct hstate {
 
     // CR0
     bool cr0_ts;
+
+	// xsave
+	bool prevosxsave;
+	uint64_t prevxstatebv;
 };
 
 struct hstate_compare {
