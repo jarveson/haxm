@@ -198,7 +198,7 @@ static const struct em_opcode_t opcode_group11[8] = {
 
 static const struct em_opcode_t opcode_group15[8] = {
 	X7(N),
-	I(em_clflush, op_none, op_modrm_rm, op_none, INSN_DST_NW)
+	I(em_clflush, op_none, op_none, op_none, INSN_DST_NW)
 };
 
 static const struct em_opcode_t opcode_table[256] = {
@@ -290,7 +290,7 @@ static const struct em_opcode_t opcode_table_0F[256] = {
     X7(N),
     F(em_bts, op_modrm_rm, op_modrm_reg, op_none, INSN_MODRM | INSN_BITOP),
     X2(N),
-	G(opcode_group15, op_none, op_modrm_rm, op_none, 0),
+	G(opcode_group15, op_none, op_none, op_none, INSN_MODRM),
 	X1(N),
     /* 0xB0 - 0xBF */
     X3(N),
