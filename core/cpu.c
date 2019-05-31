@@ -296,12 +296,15 @@ void cpu_pmu_init(void *arg)
 	// amd hack, base amd64 has 4 counters, with feature flag for extended / more
 	pmu_info->apm_version = 1;
 	pmu_info->apm_general_count = 4;
-	/*if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
 		pmu_info->apm_general_count = 6;
 	}
 	else {
 		pmu_info->apm_general_count = 4;
-	}*/
+	}
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTNB)) {
+		pmu_info->apm_version = 2;
+	}
 
     // Call CPUID with EAX = 0xa
     /*cpuid_query_leaf(&cpuid_args, 0xa);

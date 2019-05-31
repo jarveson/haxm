@@ -1049,12 +1049,29 @@ void save_guest_msr(struct vcpu_t *vcpu)
         return;
 
     // APM v1: save IA32_PMCx and IA32_PERFEVTSELx
-    for (i = 0; i < (int)hax->apm_general_count; i++) {
-        uint32_t msr = (uint32_t)(MSR_AMD_PMC0 + i);
-        gstate->apm_pmc_msrs[i] = ia32_rdmsr(msr);
-        msr = (uint32_t)(MSR_AMD_PERFEVTSEL0 + i);
-        gstate->apm_pes_msrs[i] = ia32_rdmsr(msr);
-    }
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
+		for (i = 0; i < (int)hax->apm_general_count*2; i+=2) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			gstate->apm_pmc_msrs[i/2] = ia32_rdmsr(msr);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i+1);
+			gstate->apm_pes_msrs[i/2] = ia32_rdmsr(msr);
+		}
+	}
+	else {
+		for (i = 0; i < (int)hax->apm_general_count; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_PMC0 + i);
+			gstate->apm_pmc_msrs[i] = ia32_rdmsr(msr);
+			msr = (uint32_t)(MSR_AMD_PERFEVTSEL0 + i);
+			gstate->apm_pes_msrs[i] = ia32_rdmsr(msr);
+		}
+	}
+
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTNB)) {
+		for (i = 0; i < 8; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_NB_PERFEVTSEL0 + i);
+			gstate->apm_nb_msrs[i / 2] = ia32_rdmsr(msr);
+		}
+	}
 }
 
 void load_guest_msr(struct vcpu_t *vcpu)
@@ -1080,13 +1097,30 @@ void load_guest_msr(struct vcpu_t *vcpu)
     if (!hax->apm_version)
         return;
 
-    // APM v1: restore IA32_PMCx and IA32_PERFEVTSELx
-    for (i = 0; i < (int)hax->apm_general_count; i++) {
-        uint32_t msr = (uint32_t)(MSR_AMD_PMC0 + i);
-        ia32_wrmsr(msr, gstate->apm_pmc_msrs[i]);
-        msr = (uint32_t)(MSR_AMD_PERFEVTSEL0 + i);
-        ia32_wrmsr(msr, gstate->apm_pes_msrs[i]);
-    }
+	// APM v1: save IA32_PMCx and IA32_PERFEVTSELx
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
+		for (i = 0; i < (int)hax->apm_general_count * 2; i+=2) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, gstate->apm_pmc_msrs[i/2]);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i+1);
+			ia32_wrmsr(msr, gstate->apm_pes_msrs[i/2]);
+		}
+	}
+	else {
+		for (i = 0; i < (int)hax->apm_general_count; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, gstate->apm_pmc_msrs[i]);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, gstate->apm_pes_msrs[i]);
+		}
+	}
+
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTNB)) {
+		for (i = 0; i < 8; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_NB_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, gstate->apm_nb_msrs[i]);
+		}
+	}
 }
 
 static void save_host_msr(struct vcpu_t *vcpu)
@@ -1109,13 +1143,30 @@ static void save_host_msr(struct vcpu_t *vcpu)
     if (!hax->apm_version)
         return;
 
-    // APM v1: save IA32_PMCx and IA32_PERFEVTSELx
-    for (i = 0; i < (int)hax->apm_general_count; i++) {
-        uint32_t msr = (uint32_t)(MSR_AMD_PMC0 + i);
-        hstate->apm_pmc_msrs[i] = ia32_rdmsr(msr);
-        msr = (uint32_t)(MSR_AMD_PERFEVTSEL0 + i);
-        hstate->apm_pes_msrs[i] = ia32_rdmsr(msr);
-    }
+	// APM v1: save IA32_PMCx and IA32_PERFEVTSELx
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
+		for (i = 0; i < (int)hax->apm_general_count*2; i+=2) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			hstate->apm_pmc_msrs[i/2] = ia32_rdmsr(msr);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i+1);
+			hstate->apm_pes_msrs[i/2] = ia32_rdmsr(msr);
+		}
+	}
+	else {
+		for (i = 0; i < (int)hax->apm_general_count; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			hstate->apm_pmc_msrs[i] = ia32_rdmsr(msr);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			hstate->apm_pes_msrs[i] = ia32_rdmsr(msr);
+		}
+	}
+
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTNB)) {
+		for (i = 0; i < 8; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_NB_PERFEVTSEL0 + i);
+			hstate->apm_nb_msrs[i] = ia32_rdmsr(msr);
+		}
+	}
 }
 
 static void load_host_msr(struct vcpu_t *vcpu)
@@ -1141,13 +1192,30 @@ static void load_host_msr(struct vcpu_t *vcpu)
     if (!hax->apm_version)
         return;
 
-    // APM v1: restore IA32_PMCx and IA32_PERFEVTSELx
-    for (i = 0; i < (int)hax->apm_general_count; i++) {
-        uint32_t msr = (uint32_t)(MSR_AMD_PMC0 + i);
-        ia32_wrmsr(msr, hstate->apm_pmc_msrs[i]);
-        msr = (uint32_t)(MSR_AMD_PERFEVTSEL0 + i);
-        ia32_wrmsr(msr, hstate->apm_pes_msrs[i]);
-    }
+	// APM v1: save IA32_PMCx and IA32_PERFEVTSELx
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTCORE)) {
+		for (i = 0; i < (int)hax->apm_general_count*2; i+=2) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, hstate->apm_pmc_msrs[i/2]);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i+1);
+			ia32_wrmsr(msr, hstate->apm_pes_msrs[i/2]);
+		}
+	}
+	else {
+		for (i = 0; i < (int)hax->apm_general_count; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, hstate->apm_pmc_msrs[i]);
+			msr = (uint32_t)(MSR_AMD_A_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, hstate->apm_pes_msrs[i]);
+		}
+	}
+
+	if (cpu_has_feature(X86_FEATURE_PERFCTREXTNB)) {
+		for (i = 0; i < 8; i++) {
+			uint32_t msr = (uint32_t)(MSR_AMD_NB_PERFEVTSEL0 + i);
+			ia32_wrmsr(msr, hstate->apm_nb_msrs[i]);
+		}
+	}
 }
 
 static inline bool is_host_debug_enabled(struct vcpu_t *vcpu)
@@ -3208,10 +3276,10 @@ static void handle_cpuid_virtual(struct vcpu_t *vcpu, uint32_t a, uint32_t c)
             //state->_eax = state->_ebx = state->_ecx = 0;
             // Report only the features specified but turn off any features
             // this processor doesn't support.
-			// jake: todo: these features
-			//state->_ecx = 0x3ff;
-			state->_ecx = 0;
-            state->_edx = cpu_features_ext & state->_edx;
+			// jake: too lazy to make whole enum for this
+			// but basically all amd ryzen features except svm, extapic, skint, watchdog and topology
+			state->_ecx = state->_ecx & 0x358203F3;
+			state->_edx = state->_edx;// cpu_features_ext& state->_edx;
             return;
         }
         /*

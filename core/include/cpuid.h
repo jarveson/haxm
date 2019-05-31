@@ -235,6 +235,7 @@ enum {
 	X86_FEATURE_SVM		      = FEAT(2),  /* 0x00000004  SVM Instructions */
     X86_FEATURE_PREFETCHW     = FEAT(8),  /* 0x00000100  PREFETCH/PREFETCHW instructions */
 	X86_FEATURE_PERFCTREXTCORE= FEAT(23), /* 0x00800000  Extended Performance Core Counters */
+	X86_FEATURE_PERFCTREXTNB  = FEAT(24), /* 0x00800000  Extended Performance Northbridge Counters */
 #undef FEAT
 
     /*

@@ -73,6 +73,7 @@ struct hstate {
     uint64_t apm_pmc_msrs[APM_MAX_GENERAL_COUNT];
     // IA32_PERFEVTSELx, since APM v1
     uint64_t apm_pes_msrs[APM_MAX_GENERAL_COUNT];
+	uint64_t apm_nb_msrs[8];
     // IA32_TSC_AUX
     uint64_t tsc_aux;
     struct hax_page *hfxpage;

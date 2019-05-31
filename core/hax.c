@@ -600,8 +600,10 @@ static void hax_pmu_init(void)
         // IA SDM Vol. 3B 18.2 describes APM version 1 through 4, which can be
         // implemented in an incremental manner
         // TODO: Implement APM version 2
+		bool hasNbCounters = false;
         if (hax->apm_version > 1) {
             hax->apm_version = 1;
+			hasNbCounters = true;
         }
         hax->apm_general_count =
                 ref_pmu_info->apm_general_count > APM_MAX_GENERAL_COUNT
@@ -621,9 +623,11 @@ static void hax_pmu_init(void)
                  hax->apm_event_unavailability);
 
 		// todo: redo msr access here
-        set_msr_access(MSR_AMD_PMC0, hax->apm_general_count, true, true);
-        set_msr_access(MSR_AMD_PERFEVTSEL0, hax->apm_general_count, true, true);
+        set_msr_access(MSR_AMD_PMC0, hax->apm_general_count > 4 ? 4 : hax->apm_general_count, true, true);
+        set_msr_access(MSR_AMD_PERFEVTSEL0, hax->apm_general_count > 4 ? 4 : hax->apm_general_count, true, true);
 		set_msr_access(MSR_AMD_A_PERFEVTSEL0, hax->apm_general_count * 2, true, true);
+		if (hasNbCounters)
+			set_msr_access(MSR_AMD_NB_PERFEVTSEL0, 8, true, true);
 
         if (hax->apm_version > 1) {
             hax->apm_fixed_count =

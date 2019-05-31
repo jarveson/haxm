@@ -73,7 +73,7 @@ struct cpu_pmu_info {
 
 // Maximum number of general-purpose performance monitoring counters per
 // processor: IA SDM Vol. 3C 35.1 defines IA32_PERFEVTSELx, x = 0..3
-#define APM_MAX_GENERAL_COUNT 4
+#define APM_MAX_GENERAL_COUNT 6
 // Maximum number of APM events: IA SDM Vol. 2 Table 3-8 lists 7 APM events
 #define APM_MAX_EVENT_COUNT   7
 // Maximum number of fixed-function performance monitoring counters per
