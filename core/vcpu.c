@@ -2832,6 +2832,7 @@ static void vcpu_init_emulator(struct vcpu_t *vcpu)
 static void stack_dump(struct vcpu_t *vcpu) {
 
 	uint mode;
+    int x;
 	uint8_t instr[16] = { 0 };
 	uint64_t cs_base = vcpu->state->_cs.base;
 
@@ -2852,7 +2853,7 @@ static void stack_dump(struct vcpu_t *vcpu) {
 		va -= 0x50;
 	else va = 0;
 	hax_info("stack_dump vcpu: 0x%x\n", vcpu->vcpu_id);
-	for (int x = 0; x < 10; ++x) {
+	for (x = 0; x < 10; ++x) {
 		if (!mmio_fetch_instruction(vcpu, va, instr, 16)) {
 			hax_info("mem: loc: 0x%llx 0x%02x%02x%02x%02x 0x%02x%02x%02x%02x 0x%02x%02x%02x%02x 0x%02x%02x%02x%02x\n", va,
 				instr[0], instr[1], instr[2], instr[3], instr[4], instr[5], instr[6], instr[7], instr[8], instr[9], instr[10]
@@ -2868,7 +2869,7 @@ static void stack_dump(struct vcpu_t *vcpu) {
 	uint64_t sp = (mode == EM_MODE_PROT64) ? vcpu->state->_rsp : vcpu->state->_ss.base + vcpu->state->_rsp;
 	//uint64_t sp = vcpu->state->_rsp;
 	hax_info("stack dump:\n");
-	for (int x = 0; x < 10; ++x) {
+	for (x = 0; x < 10; ++x) {
 		if (!mmio_fetch_instruction(vcpu, sp, instr, 8)) {
 			hax_info("sp 0x%llx data: 0x%02x%02x%02x%02x 0x%02x%02x%02x%02x\n", sp,
 				instr[0], instr[1], instr[2], instr[3], instr[4], instr[5], instr[6], instr[7]);
