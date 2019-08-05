@@ -66,11 +66,11 @@ static void hax_enable_vmx(void)
 }
 
 static void hax_enable_svm(void) {
-	hax_smp_call_function(&cpu_online_map, cpu_init_svm, NULL);
+    hax_smp_call_function(&cpu_online_map, cpu_init_svm, NULL);
 }
 
 static void hax_disable_svm(void) {
-	hax_smp_call_function(&cpu_online_map, cpu_exit_svm, NULL);
+    hax_smp_call_function(&cpu_online_map, cpu_exit_svm, NULL);
 }
 
 static void hax_disable_vmx(void)
@@ -89,10 +89,10 @@ static void free_cpu_vmxon_region(void)
             hax_free_pages(hax_cpu_data[cpu]->vmxon_page);
             hax_cpu_data[cpu]->vmxon_page = NULL;
         }
-		if (hax_cpu_data[cpu]->hostvm_page) {
-			hax_free_pages(hax_cpu_data[cpu]->hostvm_page);
-			hax_cpu_data[cpu]->hostvm_page = NULL;
-		}
+        if (hax_cpu_data[cpu]->hostvm_page) {
+            hax_free_pages(hax_cpu_data[cpu]->hostvm_page);
+            hax_cpu_data[cpu]->hostvm_page = NULL;
+        }
     }
 }
 
@@ -100,21 +100,21 @@ static int alloc_cpu_vmxon_region(void)
 {
     int cpu;
     struct hax_page *page;
-	struct hax_page *page2;
+    struct hax_page *page2;
 
     for (cpu = 0; cpu < max_cpus; cpu++) {
         if (!cpu_is_online(cpu) || !hax_cpu_data[cpu])
             continue;
         page = hax_alloc_page(0, 1);
-		page2 = hax_alloc_page(0, 1);
+        page2 = hax_alloc_page(0, 1);
         if (!page || !page2) {
             free_cpu_vmxon_region();
             return -ENOMEM;
         }
         hax_clear_page(page);
-		hax_clear_page(page2);
+        hax_clear_page(page2);
         hax_cpu_data[cpu]->vmxon_page = page;
-		hax_cpu_data[cpu]->hostvm_page = page2;
+        hax_cpu_data[cpu]->hostvm_page = page2;
     }
     return 0;
 }
@@ -158,92 +158,92 @@ int hax_em64t_enabled(void)
 }
 
 static int hax_svm_enable_check(void) {
-	int vts = 0, nxs = 0, vte = 0, nxe = 0, em64s = 0, em64e = 0, finished = 0;
-	int cpu, tnum = 0, error = 0;
+    int vts = 0, nxs = 0, vte = 0, nxe = 0, em64s = 0, em64e = 0, finished = 0;
+    int cpu, tnum = 0, error = 0;
 
-	for (cpu = 0; cpu < max_cpus; cpu++) {
-		struct per_cpu_data *cpu_data;
+    for (cpu = 0; cpu < max_cpus; cpu++) {
+        struct per_cpu_data *cpu_data;
 
-		if (!cpu_is_online(cpu))
-			continue;
-		cpu_data = hax_cpu_data[cpu];
-		// This should not happen !
-		if (!cpu_data)
-			continue;
+        if (!cpu_is_online(cpu))
+            continue;
+        cpu_data = hax_cpu_data[cpu];
+        // This should not happen !
+        if (!cpu_data)
+            continue;
 
-		if (cpu_data->cpu_features & HAX_CPUF_VALID) {
-			tnum++;
-			if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_VT) {
-				vts++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_NX) {
-				nxs++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_EM64T) {
-				em64s++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_ENABLE_VT) {
-				vte++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_ENABLE_NX) {
-				nxe++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_ENABLE_EM64T) {
-				em64e++;
-			}
-			if (cpu_data->cpu_features & HAX_CPUF_INITIALIZED) {
-				finished++;
-			}
-		}
-	}
-	if (vts != tnum) {
-		hax_error("VT is not supported in the system, HAXM exits, sorry!\n");
-		hax_notify_host_event(HaxNoVtEvent, NULL, 0);
-		return -1;
-	}
+        if (cpu_data->cpu_features & HAX_CPUF_VALID) {
+            tnum++;
+            if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_VT) {
+                vts++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_NX) {
+                nxs++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_SUPPORT_EM64T) {
+                em64s++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_ENABLE_VT) {
+                vte++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_ENABLE_NX) {
+                nxe++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_ENABLE_EM64T) {
+                em64e++;
+            }
+            if (cpu_data->cpu_features & HAX_CPUF_INITIALIZED) {
+                finished++;
+            }
+        }
+    }
+    if (vts != tnum) {
+        hax_error("VT is not supported in the system, HAXM exits, sorry!\n");
+        hax_notify_host_event(HaxNoVtEvent, NULL, 0);
+        return -1;
+    }
 
-	if (nxs != tnum) {
-		hax_error("NX is not supported in the system, HAXM exits, sorry!\n");
-		hax_notify_host_event(HaxNoNxEvent, NULL, 0);
-		return -1;
-	}
+    if (nxs != tnum) {
+        hax_error("NX is not supported in the system, HAXM exits, sorry!\n");
+        hax_notify_host_event(HaxNoNxEvent, NULL, 0);
+        return -1;
+    }
 #if 0
-	if (em64s != tnum) {
-		hax_error("EM64T is not supported in the system, HAXM exits, sorry!\n");
-		hax_notify_host_event(HaxNoEMT64Event, NULL, 0);
-		return -1;
-	}
+    if (em64s != tnum) {
+        hax_error("EM64T is not supported in the system, HAXM exits, sorry!\n");
+        hax_notify_host_event(HaxNoEMT64Event, NULL, 0);
+        return -1;
+    }
 #endif
-	if (nxe != tnum) {
-		hax_error("NX is not enabled in the system, HAXM does not function.\n");
-		error = 1;
-		hax_notify_host_event(HaxNxDisable, NULL, 0);
-	}
-	else {
-		hax->nx_enable_flag = 1;
-	}
+    if (nxe != tnum) {
+        hax_error("NX is not enabled in the system, HAXM does not function.\n");
+        error = 1;
+        hax_notify_host_event(HaxNxDisable, NULL, 0);
+    }
+    else {
+        hax->nx_enable_flag = 1;
+    }
 
-	if (vte != tnum) {
-		hax_error("VT is not enabled in the system, HAXM does not function.\n");
-		hax_notify_host_event(HaxVtDisable, NULL, 0);
-		error = 1;
-	}
-	else {
-		hax->vmx_enable_flag = 1;
-	}
+    if (vte != tnum) {
+        hax_error("VT is not enabled in the system, HAXM does not function.\n");
+        hax_notify_host_event(HaxVtDisable, NULL, 0);
+        error = 1;
+    }
+    else {
+        hax->vmx_enable_flag = 1;
+    }
 
-	if (em64e == tnum) {
-		hax->em64t_enable_flag = 1;
-	}
+    if (em64e == tnum) {
+        hax->em64t_enable_flag = 1;
+    }
 
-	hax->ug_enable_flag = 1;
+    hax->ug_enable_flag = 1;
 
-	if ((error == 0) && (tnum != finished)) {
-		hax_error("Unknown reason happens to VT init, HAXM exit\n");
-		hax_notify_host_event(HaxVtEnableFailure, NULL, 0);
-		return -1;
-	}
-	return 0;
+    if ((error == 0) && (tnum != finished)) {
+        hax_error("Unknown reason happens to VT init, HAXM exit\n");
+        hax_notify_host_event(HaxVtEnableFailure, NULL, 0);
+        return -1;
+    }
+    return 0;
 }
 
 /*
@@ -344,44 +344,44 @@ static int hax_vmx_enable_check(void)
 }
 
 static int hax_svm_init(void) {
-	int ret = -ENOMEM;
+    int ret = -ENOMEM;
 
-	io_bitmap_page_a = (struct hax_page *)hax_alloc_pages(2, 0, 1);
-	if (!io_bitmap_page_a)
-		return -ENOMEM;
-	memset(hax_page_va(io_bitmap_page_a), 0xff, HAX_PAGE_SIZE * (1 << io_bitmap_page_a->order));
+    io_bitmap_page_a = (struct hax_page *)hax_alloc_pages(2, 0, 1);
+    if (!io_bitmap_page_a)
+        return -ENOMEM;
+    memset(hax_page_va(io_bitmap_page_a), 0xff, HAX_PAGE_SIZE * (1 << io_bitmap_page_a->order));
 
-	msr_bitmap_page = (struct hax_page *)hax_alloc_pages(1, 0, 1);
-	if (!msr_bitmap_page)
-		goto out_2;
-	memset(hax_page_va(msr_bitmap_page), 0xff, HAX_PAGE_SIZE * (1 << msr_bitmap_page->order));
+    msr_bitmap_page = (struct hax_page *)hax_alloc_pages(1, 0, 1);
+    if (!msr_bitmap_page)
+        goto out_2;
+    memset(hax_page_va(msr_bitmap_page), 0xff, HAX_PAGE_SIZE * (1 << msr_bitmap_page->order));
 
-	// we can reuse vmxon as hsave page for svm
-	if ((ret = alloc_cpu_vmxon_region()) < 0)
-		goto out_3;
+    // we can reuse vmxon as hsave page for svm
+    if ((ret = alloc_cpu_vmxon_region()) < 0)
+        goto out_3;
 
-	// we should be able to reuse this for vmcb
-	if ((ret = alloc_cpu_template_vmcs()) < 0)
-		goto out_4;
+    // we should be able to reuse this for vmcb
+    if ((ret = alloc_cpu_template_vmcs()) < 0)
+        goto out_4;
 
-	hax_enable_svm();
+    hax_enable_svm();
 
-	if ((ret = hax_svm_enable_check()) < 0)
-		goto out_5;
+    if ((ret = hax_svm_enable_check()) < 0)
+        goto out_5;
 
-	return 0;
+    return 0;
 out_5:
-	hax_disable_svm();
-	free_cpu_template_vmcs();
+    hax_disable_svm();
+    free_cpu_template_vmcs();
 out_4:
-	free_cpu_vmxon_region();
+    free_cpu_vmxon_region();
 out_3:
-	hax_free_pages(msr_bitmap_page);
+    hax_free_pages(msr_bitmap_page);
 out_2:
-	hax_free_pages(io_bitmap_page_b);
+    hax_free_pages(io_bitmap_page_b);
 out_1:
-	hax_free_pages(io_bitmap_page_a);
-	return ret;
+    hax_free_pages(io_bitmap_page_a);
+    return ret;
 }
 
 static int hax_vmx_init(void)
@@ -524,37 +524,37 @@ static void set_msr_access(uint32_t start, uint32_t count, bool read, bool write
     uint32_t end = start + count - 1;
     uint32_t bit_read, bit_write;
     uint8_t *msr_bitmap = hax_page_va(msr_bitmap_page);
-	uint32_t offset, x, msr;
-	uint8_t read_base;
+    uint32_t offset, x, msr;
+    uint8_t read_base;
 
     //hax_assert(((start ^ (start << 1)) & 0x80000000) == 0);
     //hax_assert((start & 0x3fffe000) == 0);
     //hax_assert(((start ^ end) & 0xffffe000) == 0);
     hax_assert(msr_bitmap);
 
-	for (x = 0; x < count; ++x) {
-		msr = start + x;
-		offset = svm_msrpm_offset(msr);
-		hax_assert(offset != -1);
+    for (x = 0; x < count; ++x) {
+        msr = start + x;
+        offset = svm_msrpm_offset(msr);
+        hax_assert(offset != -1);
 
-		bit_read = 2 * (msr & 0x0f);
-		bit_write = 2 * (msr & 0x0f) + 1;
+        bit_read = 2 * (msr & 0x0f);
+        bit_write = 2 * (msr & 0x0f) + 1;
 
-		read_base = msr_bitmap[offset];
-		if (read) {
-			btr(&read_base, bit_read);
-		}
-		else {
-			bts(&read_base, bit_read);
-		}
+        read_base = msr_bitmap[offset];
+        if (read) {
+            btr(&read_base, bit_read);
+        }
+        else {
+            bts(&read_base, bit_read);
+        }
 
-		if (write) {
-			btr(&read_base, bit_write);
-		}
-		else {
-			bts(&read_base, bit_write);
-		}
-	}
+        if (write) {
+            btr(&read_base, bit_write);
+        }
+        else {
+            bts(&read_base, bit_write);
+        }
+    }
 }
 
 /*
@@ -600,10 +600,10 @@ static void hax_pmu_init(void)
         // IA SDM Vol. 3B 18.2 describes APM version 1 through 4, which can be
         // implemented in an incremental manner
         // TODO: Implement APM version 2
-		bool hasNbCounters = false;
+        bool hasNbCounters = false;
         if (hax->apm_version > 1) {
             hax->apm_version = 1;
-			hasNbCounters = true;
+            hasNbCounters = true;
         }
         hax->apm_general_count =
                 ref_pmu_info->apm_general_count > APM_MAX_GENERAL_COUNT
@@ -622,12 +622,12 @@ static void hax_pmu_init(void)
         hax_info("APM: %u events, unavailability 0x%x\n", hax->apm_event_count,
                  hax->apm_event_unavailability);
 
-		// todo: redo msr access here
+        // todo: redo msr access here
         set_msr_access(MSR_AMD_PMC0, hax->apm_general_count > 4 ? 4 : hax->apm_general_count, true, true);
         set_msr_access(MSR_AMD_PERFEVTSEL0, hax->apm_general_count > 4 ? 4 : hax->apm_general_count, true, true);
-		set_msr_access(MSR_AMD_A_PERFEVTSEL0, hax->apm_general_count * 2, true, true);
-		if (hasNbCounters)
-			set_msr_access(MSR_AMD_NB_PERFEVTSEL0, 8, true, true);
+        set_msr_access(MSR_AMD_A_PERFEVTSEL0, hax->apm_general_count * 2, true, true);
+        if (hasNbCounters)
+            set_msr_access(MSR_AMD_NB_PERFEVTSEL0, 8, true, true);
 
         if (hax->apm_version > 1) {
             hax->apm_fixed_count =
@@ -647,7 +647,7 @@ static void hax_pmu_init(void)
         // Copy the common APM parameters to hax->apm_cpuid_0xa, so as to
         // simplify CPUID virtualization
 
-		// todo: support this differently for amd
+        // todo: support this differently for amd
         /*pmu_info = &hax->apm_cpuid_0xa;
         pmu_info->apm_version = hax->apm_version;
         pmu_info->apm_general_count = hax->apm_general_count;
@@ -668,35 +668,35 @@ static void hax_pmu_init(void)
 }
 
 static void hax_msr_access_init(void) {
-	int cpu_id;
-	int supportslbr = 0;
+    int cpu_id;
+    int supportslbr = 0;
 
-	for (cpu_id = 0; cpu_id < max_cpus; cpu_id++) {
-		struct per_cpu_data *cpu_data;
+    for (cpu_id = 0; cpu_id < max_cpus; cpu_id++) {
+        struct per_cpu_data *cpu_data;
 
-		if (!cpu_is_online(cpu_id)) {
-			continue;
-		}
-		cpu_data = hax_cpu_data[cpu_id];
-		// Should never happen
-		if (!cpu_data) {
-			hax_warning("hax_pmu_init: hax_cpu_data[%d] is NULL\n", cpu_id);
-			continue;
-		}
-		if (cpu_data->lbr_support) {
-			supportslbr = 1;
-			break;
-		}
-	}
-	if (supportslbr) {
-		set_msr_access(IA32_LASTBRANCHFROMIP, 4, true, true);
-	}
+        if (!cpu_is_online(cpu_id)) {
+            continue;
+        }
+        cpu_data = hax_cpu_data[cpu_id];
+        // Should never happen
+        if (!cpu_data) {
+            hax_warning("hax_pmu_init: hax_cpu_data[%d] is NULL\n", cpu_id);
+            continue;
+        }
+        if (cpu_data->lbr_support) {
+            supportslbr = 1;
+            break;
+        }
+    }
+    if (supportslbr) {
+        set_msr_access(IA32_LASTBRANCHFROMIP, 4, true, true);
+    }
 
-	//jake: this could also go somewhere else as its amd/svm specific
-	set_msr_access(IA32_SYSENTER_CS, 3, true, true);
-	set_msr_access(IA32_STAR, 4, true, true);
-	set_msr_access(IA32_FS_BASE, 3, true, true);
-	set_msr_access(IA32_DEBUGCTL, 1, true, true);
+    //jake: this could also go somewhere else as its amd/svm specific
+    set_msr_access(IA32_SYSENTER_CS, 3, true, true);
+    set_msr_access(IA32_STAR, 4, true, true);
+    set_msr_access(IA32_FS_BASE, 3, true, true);
+    set_msr_access(IA32_DEBUGCTL, 1, true, true);
 }
 
 int hax_module_init(void)
@@ -734,15 +734,15 @@ int hax_module_init(void)
     }
     cpu_init_feature_cache();
 
-	// todo: decide this based on feature set or something 
-	//ret = hax_vmx_init();
-	ret = hax_svm_init();
+    // todo: decide this based on feature set or something 
+    //ret = hax_vmx_init();
+    ret = hax_svm_init();
     if (ret < 0)
         goto out_2;
 
     hax_pmu_init();
 
-	hax_msr_access_init();
+    hax_msr_access_init();
 
     hax_init_list_head(&hax->hax_vmlist);
     hax_warning("-------- HAXM v%s Start --------\n", HAXM_RELEASE_VERSION_STR);
