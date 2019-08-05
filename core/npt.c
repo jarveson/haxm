@@ -181,3 +181,97 @@ void npt_flush_tlb(void *hax_vm, uint type)
         hax_mutex_unlock(hax_vm->vm_lock);
     */
 }
+
+static hax_pdpe ept_construct_eptp(hax_paddr_t addr)
+{
+    hax_pdpe eptp;
+    eptp.val = 0;
+    eptp.valid = 1;
+    eptp.user = 1;
+    eptp.readWrite = 1;
+    eptp.pfn = addr >> PG_ORDER_4K;
+    return eptp;
+}
+
+bool npt_init(void *in_hax_vm)
+{
+    uint i;
+    struct vm_t *hax_vm = (struct vm_t *)in_hax_vm;
+    hax_paddr_t hpa;
+    // Need Xiantao's check
+    unsigned char *ept_addr;
+    hax_pdpe *e;
+    struct hax_page *page;
+    struct hax_npt *ept;
+
+    if (hax_vm->npt) {
+        hax_debug("EPT has been created already!\n");
+        return 0;
+    }
+
+    ept = hax_vmalloc(sizeof(struct hax_npt), 0);
+    if (!ept) {
+        hax_debug("EPT: No enough memory for creating EPT structure!\n");
+        return 0;
+    }
+    memset(ept, 0, sizeof(struct hax_npt));
+    hax_vm->npt = ept;
+
+    page = hax_alloc_pages(EPT_PRE_ALLOC_PG_ORDER, 0, 1);
+    if (!page) {
+        hax_debug("EPT: No enough memory for creating ept table!\n");
+        hax_vfree(hax_vm->ept, sizeof(struct hax_npt));
+        return 0;
+    }
+    ept->ept_root_page = page;
+    ept_addr = hax_page_va(page);
+    memset(ept_addr, 0, EPT_PRE_ALLOC_PAGES * PAGE_SIZE_4K);
+
+    // One page for building PML4 level
+    ept->eptp = ept_construct_eptp(hax_pa(ept_addr));
+    e = (hax_pdpe *)ept_addr;
+
+    // One page for building PDPTE level
+    ept_addr += PAGE_SIZE_4K;
+    hpa = hax_pa(ept_addr);
+    npte_set_entry(e, hpa, 7, 0);
+    e = (hax_pdpe *)ept_addr;
+
+    // The rest pages are used to build PDE level
+    for (i = 0; i < EPT_MAX_MEM_G; i++) {
+        ept_addr += PAGE_SIZE_4K;
+        hpa = hax_pa(ept_addr);
+        npte_set_entry(e + i, hpa, 7, 0);
+    }
+
+    hax_init_list_head(&ept->ept_page_list);
+
+    hax_info("ept_init: Calling INVEPT\n");
+    //invept(hax_vm, EPT_INVEPT_SINGLE_CONTEXT);
+    return 1;
+}
+
+// Free the whole ept structure
+void npt_free(void *in_hax_vm)
+{
+    struct vm_t *hax_vm = (struct vm_t *)in_hax_vm;
+    struct hax_page *page, *n;
+    struct hax_npt *ept = hax_vm->npt;
+
+    hax_assert(ept);
+
+    if (!ept->ept_root_page)
+        return;
+
+    hax_info("ept_free: Calling INVEPT\n");
+    //invept(hax_vm, EPT_INVEPT_SINGLE_CONTEXT);
+    hax_list_entry_for_each_safe(page, n, &ept->ept_page_list, struct hax_page,
+        list) {
+        hax_list_del(&page->list);
+        hax_free_page(page);
+    }
+
+    hax_free_pages(ept->ept_root_page);
+    hax_vfree(hax_vm->npt, sizeof(struct hax_npt));
+    hax_vm->npt = 0;
+}
