@@ -148,10 +148,10 @@ static inline uint npt_get_pte_idx(hax_paddr_t gpa)
 	return ((gpa >> 12) & 0x1ff);
 }
 
-bool npt_init(struct vm_t *hax_vm);
-void npt_free(struct vm_t *hax_vm);
+bool npt_init(void *hax_vm);
+void npt_free(void *hax_vm);
 bool npt_translate(struct vcpu_t *vcpu, hax_paddr_t gpa, uint order, hax_paddr_t *hpa);
-bool npt_set_pte(struct vm_t *hax_vm, hax_paddr_t gpa, hax_paddr_t hpa, uint emt,
+bool npt_set_pte(void *hax_vm, hax_paddr_t gpa, hax_paddr_t hpa, uint emt,
 	uint mem_type, bool *is_modified);
 
 
@@ -306,4 +306,4 @@ int npt_handle_access_violation(hax_gpa_space *gpa_space, hax_npt_tree *tree,
 	uint64_t *fault_gfn);
 
 
-void npt_flush_tlb(struct vm_t *hax_vm, uint type);
+void npt_flush_tlb(void *hax_vm, uint type);

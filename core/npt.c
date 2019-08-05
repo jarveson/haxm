@@ -148,7 +148,7 @@ static void npt_flush_tlb_smpfunc(void* null) {
 	cpu_data->invept_res = 1;
 }
 
-void npt_flush_tlb(struct vm_t *hax_vm, uint type) {
+void npt_flush_tlb(void *hax_vm, uint type) {
 
 	// jake
 	// todo: check feature and flush by asid

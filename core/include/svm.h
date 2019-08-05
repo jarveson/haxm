@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../include/hax_types.h"
+#include "../../include/hax.h"
 
 enum {
 	SVM_INTERCEPT_INTR,
