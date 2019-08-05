@@ -79,7 +79,7 @@ void ASMCALL asm_fxrstor(mword *addr);
 void ASMCALL asm_xsave(mword* addr);
 void ASMCALL asm_xrstor(mword* addr);
 void ASMCALL asm_xsetbv(uint32_t low, uint32_t high);
-uint64_t ASMCALL asm_xgetbv();
+uint64_t ASMCALL asm_xgetbv(void);
 void ASMCALL asm_cpuid(union cpuid_args_t *state);
 
 void ASMCALL __nmi(void);
@@ -99,7 +99,7 @@ void hax_fxrstor(mword *addr);
 void hax_xsave(mword* addr);
 void hax_xrstor(mword* addr);
 void hax_xsetbv(uint32_t low, uint32_t high);
-uint64_t hax_xgetbv();
+uint64_t hax_xgetbv(void);
 
 void btr(uint8_t *addr, uint bit);
 void bts(uint8_t *addr, uint bit);
