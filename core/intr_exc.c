@@ -131,6 +131,10 @@ uint hax_intr_is_blocked(struct vcpu_t *vcpu)
 
     // todo: guest mode check for virtualization?
 
+    // check if interrupt still pending
+    if ((svm(vcpu)->control.int_ctl & SVM_V_IRQ_MASK) != 0)
+        return 1;
+
     return !!(svm(vcpu)->control.int_state & SVM_INTERRUPT_SHADOW_MASK);
 
     //intr_status = vmx(vcpu, interruptibility_state).raw;
