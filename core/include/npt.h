@@ -20,78 +20,78 @@
 #define NPT_IGNORE_ACCESS_DIRTY (~(0x60ull))
 
 typedef struct hax_pdpe {
-	union {
-		uint64_t val;
-		struct {
-			uint64_t valid : 1;
-			uint64_t readWrite : 1;
-			uint64_t user : 1;
-			uint64_t writeThrough : 1;
-			uint64_t cacheDisable : 1;
-			uint64_t access : 1;
-			uint64_t ignore : 1;
-			uint64_t pageSize : 1;
-			uint64_t resv1 : 1;
-			uint64_t avl : 3;
-			uint64_t pfn : 40;
-			uint64_t resv2 : 11;
-			uint64_t nx : 1;
-		};
-	};
+    union {
+        uint64_t val;
+        struct {
+            uint64_t valid : 1;
+            uint64_t readWrite : 1;
+            uint64_t user : 1;
+            uint64_t writeThrough : 1;
+            uint64_t cacheDisable : 1;
+            uint64_t access : 1;
+            uint64_t ignore : 1;
+            uint64_t pageSize : 1;
+            uint64_t resv1 : 1;
+            uint64_t avl : 3;
+            uint64_t pfn : 40;
+            uint64_t resv2 : 11;
+            uint64_t nx : 1;
+        };
+    };
 } hax_pdpe;
 
 typedef struct hax_pde {
-	union {
-		uint64_t val;
-		struct {
-			uint64_t valid : 1;
-			uint64_t readWrite : 1;
-			uint64_t user : 1;
-			uint64_t writeThrough : 1;
-			uint64_t cacheDisable : 1;
-			uint64_t access : 1;
-			uint64_t dirty : 1;
-			uint64_t largePage : 1;
-			uint64_t global : 1; 
-			uint64_t avl : 3;
-			//uint64_t pat : 1;
-			uint64_t pfn : 40;
-			uint64_t resv : 11;
-			uint64_t nx : 1;
-		};
-	};
+    union {
+        uint64_t val;
+        struct {
+            uint64_t valid : 1;
+            uint64_t readWrite : 1;
+            uint64_t user : 1;
+            uint64_t writeThrough : 1;
+            uint64_t cacheDisable : 1;
+            uint64_t access : 1;
+            uint64_t dirty : 1;
+            uint64_t largePage : 1;
+            uint64_t global : 1; 
+            uint64_t avl : 3;
+            //uint64_t pat : 1;
+            uint64_t pfn : 40;
+            uint64_t resv : 11;
+            uint64_t nx : 1;
+        };
+    };
 } hax_pde;
 
 #define INVALID_EPTP ~(uint64_t)0
 
 struct hax_npt {
-	bool is_enabled;
-	struct hax_link_list ept_page_list;
-	struct hax_page *ept_root_page;
-	struct hax_pdpe eptp;
+    bool is_enabled;
+    struct hax_link_list ept_page_list;
+    struct hax_page *ept_root_page;
+    struct hax_pdpe eptp;
 };
 
 typedef struct hax_npt_page {
-	hax_memdesc_phys memdesc;
-	// Turns this object into a list node
-	hax_list_node entry;
+    hax_memdesc_phys memdesc;
+    // Turns this object into a list node
+    hax_list_node entry;
 } hax_npt_page;
 
 typedef struct hax_npt_page_kmap {
-	hax_npt_page *page;
-	void *kva;
+    hax_npt_page *page;
+    void *kva;
 } hax_npt_page_kmap;
 
 #define HAX_NPT_FREQ_PAGE_COUNT 10
 
 typedef struct hax_npt_tree {
-	hax_list_head page_list;
-	hax_pdpe ncr3;
-	hax_npt_page_kmap freq_pages[HAX_NPT_FREQ_PAGE_COUNT];
-	bool invept_pending;
-	hax_spinlock *lock;
-	hax_npt_page_kmap* root_page;
-	// TODO: pointer to vm_t?
+    hax_list_head page_list;
+    hax_pdpe ncr3;
+    hax_npt_page_kmap freq_pages[HAX_NPT_FREQ_PAGE_COUNT];
+    bool invept_pending;
+    hax_spinlock *lock;
+    hax_npt_page_kmap* root_page;
+    // TODO: pointer to vm_t?
 } hax_npt_tree;
 
 /* 4 bits are avaiable for software use. */
@@ -116,43 +116,43 @@ typedef struct hax_npt_tree {
 
 static inline bool npte_is_present(hax_pdpe *entry)
 {
-	return entry->valid;
+    return entry->valid;
 }
 
 static inline hax_paddr_t npte_get_address(hax_pdpe *entry)
 {
-	return (entry->pfn << 12);
+    return (entry->pfn << 12);
 }
 
 static inline uint npte_get_perm(hax_pdpe *entry)
 {
-	return (uint)entry->readWrite;
+    return (uint)entry->readWrite;
 }
 
 static void npte_set_entry(hax_pdpe *entry, hax_paddr_t addr, uint perm, uint emt)
 {
-	entry->val = 0;
-	entry->pfn = addr >> 12;
-	entry->valid = 1;
-	entry->readWrite = 1;
-	entry->user = 1;
+    entry->val = 0;
+    entry->pfn = addr >> 12;
+    entry->valid = 1;
+    entry->readWrite = 1;
+    entry->user = 1;
 }
 
 static inline uint npt_get_pde_idx(hax_paddr_t gpa)
 {
-	return ((gpa >> 21) & 0x1ff);
+    return ((gpa >> 21) & 0x1ff);
 }
 
 static inline uint npt_get_pte_idx(hax_paddr_t gpa)
 {
-	return ((gpa >> 12) & 0x1ff);
+    return ((gpa >> 12) & 0x1ff);
 }
 
-bool npt_init(struct vm_t *hax_vm);
-void npt_free(struct vm_t *hax_vm);
+bool npt_init(void *hax_vm);
+void npt_free(void *hax_vm);
 bool npt_translate(struct vcpu_t *vcpu, hax_paddr_t gpa, uint order, hax_paddr_t *hpa);
-bool npt_set_pte(struct vm_t *hax_vm, hax_paddr_t gpa, hax_paddr_t hpa, uint emt,
-	uint mem_type, bool *is_modified);
+bool npt_set_pte(void *hax_vm, hax_paddr_t gpa, hax_paddr_t hpa, uint emt,
+    uint mem_type, bool *is_modified);
 
 
 // Initializes the given |hax_npt_tree|. This includes allocating the root
@@ -216,8 +216,8 @@ int npt_tree_create_entry(hax_npt_tree *tree, uint64_t gfn, hax_pdpe value);
 //          already present and different from what would be created.
 // -ENOMEM: Memory allocation/mapping error.
 int npt_tree_create_entries(hax_npt_tree *tree, uint64_t start_gfn, uint64_t npages,
-	hax_chunk *chunk, uint64_t offset_within_chunk,
-	uint8_t flags);
+    hax_chunk *chunk, uint64_t offset_within_chunk,
+    uint8_t flags);
 
 // Invalidates all leaf |hax_npte|s corresponding to the given GFN range, i.e.
 // marks them as not present. Also sets the |invnpt_pending| flag of the
@@ -232,7 +232,7 @@ int npt_tree_create_entries(hax_npt_tree *tree, uint64_t start_gfn, uint64_t npa
 // -EINVAL: Invalid input, e.g. |tree| is NULL.
 // -ENOMEM: Memory mapping error.
 int npt_tree_invalidate_entries(hax_npt_tree *tree, uint64_t start_gfn,
-	uint64_t npages);
+    uint64_t npages);
 
 // Returns the leaf |hax_npte| that maps the given GFN. If the leaf |hax_npte|
 // does not exist, returns an all-zero |hax_npte|.
@@ -248,7 +248,7 @@ hax_pdpe npt_tree_get_entry(hax_npt_tree *tree, uint64_t gfn);
 // |npte|: The |hax_npte| to visit.
 // |opaque|: Additional data provided by the caller of npt_tree_walk().
 typedef void(*npte_visitor)(hax_npt_tree *tree, uint64_t gfn, int level,
-	hax_pdpe *npte, void *opaque);
+    hax_pdpe *npte, void *opaque);
 
 // Walks the given |hax_npt_tree| from the root as if the given GFN were being
 // translated. Invokes the given callback on each |hax_npte| visited. Returns
@@ -260,7 +260,7 @@ typedef void(*npte_visitor)(hax_npt_tree *tree, uint64_t gfn, int level,
 //               not be NULL.
 // |opaque|: An arbitrary pointer passed as-is to |visit_current_npte|.
 void npt_tree_walk(hax_npt_tree *tree, uint64_t gfn, npte_visitor visit_npte,
-	void *opaque);
+    void *opaque);
 
 // Handles a guest memory mapping change from RAM/ROM to MMIO. Used as a
 // |hax_gpa_space_listener| callback.
@@ -271,8 +271,8 @@ void npt_tree_walk(hax_npt_tree *tree, uint64_t gfn, npte_visitor visit_npte,
 // |flags|: The old mapping properties for the GFN range, e.g. whether it was
 //          mapped as read-only.
 void npt_handle_mapping_removed(hax_gpa_space_listener *listener,
-	uint64_t start_gfn, uint64_t npages, uint64_t uva,
-	uint8_t flags);
+    uint64_t start_gfn, uint64_t npages, uint64_t uva,
+    uint8_t flags);
 
 // Handles a guest memory mapping change from RAM/ROM to RAM/ROM. Used as a
 // |hax_gpa_space_listener| callback.
@@ -286,9 +286,9 @@ void npt_handle_mapping_removed(hax_gpa_space_listener *listener,
 // |new_flags|: The new mapping properties for the GFN range, e.g. whether it is
 //              mapped as read-only.
 void npt_handle_mapping_changed(hax_gpa_space_listener *listener,
-	uint64_t start_gfn, uint64_t npages,
-	uint64_t old_uva, uint8_t old_flags,
-	uint64_t new_uva, uint8_t new_flags);
+    uint64_t start_gfn, uint64_t npages,
+    uint64_t old_uva, uint8_t old_flags,
+    uint64_t new_uva, uint8_t new_flags);
 
 // Handles an npt violation due to a guest RAM/ROM access.
 // |gpa_space|: The |hax_gpa_space| of the guest.
@@ -302,8 +302,7 @@ void npt_handle_mapping_changed(hax_gpa_space_listener *listener,
 //          present, but the access violates the permissions it allows.
 // -ENOMEM: Memory allocation/mapping error.
 int npt_handle_access_violation(hax_gpa_space *gpa_space, hax_npt_tree *tree,
-	uint64_t exitinfo1, uint64_t gpa,
-	uint64_t *fault_gfn);
+    uint64_t exitinfo1, uint64_t gpa,
+    uint64_t *fault_gfn);
 
-
-void npt_flush_tlb(struct vm_t *hax_vm, uint type);
+void npt_flush_tlb(void *hax_vm, uint type);
