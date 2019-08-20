@@ -525,7 +525,7 @@ static void set_msr_access(uint32_t start, uint32_t count, bool read, bool write
     uint32_t bit_read, bit_write;
     uint8_t *msr_bitmap = hax_page_va(msr_bitmap_page);
     uint32_t offset, x, msr;
-    uint8_t read_base;
+    uint8_t* read_base;
 
     //hax_assert(((start ^ (start << 1)) & 0x80000000) == 0);
     //hax_assert((start & 0x3fffe000) == 0);
@@ -540,19 +540,19 @@ static void set_msr_access(uint32_t start, uint32_t count, bool read, bool write
         bit_read = 2 * (msr & 0x0f);
         bit_write = 2 * (msr & 0x0f) + 1;
 
-        read_base = msr_bitmap[offset];
+        read_base = &msr_bitmap[offset];
         if (read) {
-            btr(&read_base, bit_read);
+            btr(read_base, bit_read);
         }
         else {
-            bts(&read_base, bit_read);
+            bts(read_base, bit_read);
         }
 
         if (write) {
-            btr(&read_base, bit_write);
+            btr(read_base, bit_write);
         }
         else {
-            bts(&read_base, bit_write);
+            bts(read_base, bit_write);
         }
     }
 }
