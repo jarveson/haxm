@@ -1675,9 +1675,6 @@ static void fill_common_vmcb(struct vcpu_t* vcpu) {
     svm(vcpu)->control.intercept |= SVM_INTERCEPT(SVM_INTERCEPT_MSR_PROT);
     svm(vcpu)->control.intercept |= SVM_INTERCEPT(SVM_INTERCEPT_HLT);
 
-    // *i think* this is equivalent to 'interrupt_window_exiting'
-    //svm(vcpu)->control.intercept |= SVM_INTERCEPT(SVM_INTERCEPT_VINTR);
-
     svm(vcpu)->control.intercept_dr |= 0xFF00FF; // all dr0-7 read and write
 
     //svm(vcpu)->control.intercept_cr |= SVM_INTERCEPT(SVM_INTERCEPT_CR8_READ);

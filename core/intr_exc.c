@@ -99,11 +99,10 @@ static void vcpu_ack_intr(struct vcpu_t *vcpu, uint8_t vector)
  */
 static void hax_inject_intr(struct vcpu_t *vcpu, uint8_t vector)
 {
-    svm(vcpu)->control.int_vector = vector;
-    svm(vcpu)->control.int_ctl &= ~SVM_V_INTR_PRIO_MASK;
-    svm(vcpu)->control.int_ctl |= SVM_V_IRQ_MASK | ((0xf) << SVM_V_INTR_PRIO_SHIFT);
-    if (vector != 0)
-        vcpu_ack_intr(vcpu, vector);
+	uint32_t intr_info;
+	intr_info = (1 << 31) | vector;
+	svm(vcpu)->control.event_inj = intr_info;
+    vcpu_ack_intr(vcpu, vector);
     vcpu->event_injected = 1;
 }
 
@@ -114,7 +113,9 @@ static void hax_inject_intr(struct vcpu_t *vcpu, uint8_t vector)
 static void hax_enable_intr_window(struct vcpu_t *vcpu)
 {
     svm(vcpu)->control.intercept |= SVM_INTERCEPT(SVM_INTERCEPT_VINTR);
-    hax_inject_intr(vcpu, 0);
+	svm(vcpu)->control.int_vector = 0;
+	svm(vcpu)->control.int_ctl &= ~SVM_V_INTR_PRIO_MASK;
+	svm(vcpu)->control.int_ctl |= SVM_V_IRQ_MASK | ((0xf) << SVM_V_INTR_PRIO_SHIFT);
 }
 
 /*
@@ -129,18 +130,7 @@ uint hax_intr_is_blocked(struct vcpu_t *vcpu)
     if (!(state->_eflags & EFLAGS_IF))
         return 1;
 
-    // todo: guest mode check for virtualization?
-
-    // check if interrupt still pending
-    if ((svm(vcpu)->control.int_ctl & SVM_V_IRQ_MASK) != 0 && (svm(vcpu)->control.int_vector != 0))
-        return 1;
-
 	return !!(svm(vcpu)->control.int_state & SVM_INTERRUPT_SHADOW_MASK);
-
-    //intr_status = vmx(vcpu, interruptibility_state).raw;
-    //if (intr_status & 3)
-        //return 1;
-    //return 0;
 }
 
 /*
@@ -175,11 +165,10 @@ void vcpu_inject_intr(struct vcpu_t *vcpu, struct hax_tunnel *htun)
     uint32_t vector;
     uint32_t intr_info;
 
-    //intr_info = vmread(vcpu, VMX_ENTRY_INTERRUPT_INFO);
-    //intr_info = svm(vcpu)->control.event_inj;
+    intr_info = svm(vcpu)->control.event_inj;
     vector = vcpu_get_pending_intrs(vcpu);
     if (hax_valid_vector(vector) && !vcpu->event_injected &&
-        !hax_intr_is_blocked(vcpu))
+        !hax_intr_is_blocked(vcpu) && !(intr_info & (1 << 31)))
         hax_inject_intr(vcpu, vector);
     /* Check interrupt window's setting needed */
     vector = vcpu_get_pending_intrs(vcpu);
