@@ -3196,6 +3196,7 @@ static void handle_cpuid_virtual(struct vcpu_t *vcpu, uint32_t a, uint32_t c)
             // supported by the host CPU, but including "hypervisor", which is
             // desirable for VMMs.
             // TBD: This will need to be changed to emulate new features.
+            state->_eax = 0x710F10;
             state->_ebx = (0x00FFFFFF & state->_ebx) | (vcpu->vcpu_id << 24);
             state->_ecx = (cpu_features_2 & state->_ecx) | FEATURE(HYPERVISOR);
             state->_edx = cpu_features_1 & state->_edx;
