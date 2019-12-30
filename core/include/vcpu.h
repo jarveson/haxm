@@ -243,6 +243,7 @@ struct vcpu_t {
 #ifdef CONFIG_HAX_EPT2
     struct mmio_fetch_cache mmio_fetch;
 #endif  // CONFIG_HAX_EPT2
+    bool waitforsyscall;
 };
 
 #define vmx(v, field) v->vmx.field

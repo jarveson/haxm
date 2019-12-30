@@ -445,6 +445,13 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 	//hax_debug("vm entry!\n");
 	hax_paddr_t hostvmpagepa;
 	struct per_cpu_data* cpu_data = current_cpu_data();
+
+    // disable syscalls 
+    uint64_t efer = svm(vcpu)->save.efer;
+    if (vcpu->waitforsyscall) {
+        svm(vcpu)->save.efer &= 0xfffffffffffffffe;
+    }
+
 	// disable gif for atomic state switch, processor reenables this on switch
 	asm_clgi();
 
@@ -491,6 +498,13 @@ vmx_result_t cpu_svm_run(struct vcpu_t *vcpu, struct hax_tunnel *htun)
 	// but leave irqs disabled until svm is turned off
 	hax_disable_irq();
 	asm_stgi();
+
+    // put back efer 
+    if (vcpu->waitforsyscall) {
+        svm(vcpu)->save.efer = efer;
+    }
+    else
+        vcpu->waitforsyscall = true;
 
 #ifdef  DEBUG_HOST_STATE
 	vcpu_get_host_state(current_cpu_data(), 0);

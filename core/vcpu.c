@@ -623,6 +623,7 @@ static void vcpu_init(struct vcpu_t *vcpu)
 
     hax_mutex_lock(vcpu->tmutex);
 
+    vcpu->waitforsyscall = true;
     // TODO: mtrr ?
     vcpu->cr_pat = 0x0007040600070406ULL;
     vcpu->cpuid_features_flag_mask = 0xffffffffffffffffULL;
@@ -2917,9 +2918,34 @@ static int exit_exc_nmi(struct vcpu_t *vcpu, struct hax_tunnel *htun)
             break;
         }
         case SVM_EXIT_EXCP_BASE + VECTOR_UD: {
-            hax_panic_vcpu(vcpu, "undefined opcode\n");
-            stack_dump(vcpu);
-            dump_vmcs(vcpu);
+            // nasty hack: todo: jake: check rip or w/e to see if its actually a syscall instruction
+            vcpu->waitforsyscall = false;
+            //hax_error("rax:0x%llx, \n", vcpu->state->_rax);
+
+            if (vcpu->state->_rax == 0x4) {
+
+                /*
+                hax_error("sys_write?\n");
+                hax_error("rbx:0x%llx, \n", vcpu->state->_rbx);
+                hax_error("rcx:0x%llx, \n", vcpu->state->_rcx);
+                hax_error("rdi:0x%llx, \n", vcpu->state->_rdi);
+                hax_error("rsi:0x%llx, \n", vcpu->state->_rsi);
+                hax_error("rdx:0x%llx, \n", vcpu->state->_rdx);*/
+
+                if (vcpu->state->_rdi == 0x2 || vcpu->state->_rdi == 0x1 && ((int64_t)vcpu->state->_rdx > 0)) {
+                    uint64_t len = vcpu->state->_rdx;
+                    char* buf = (char*)hax_vmalloc(len, 0);
+                    vcpu_read_guest_virtual(vcpu, vcpu->state->_rsi, buf, (uint)len, (uint)len, 0);
+                    hax_error("output: %s\n", buf);
+                    hax_vfree(buf, len);
+    
+                }
+            }
+            
+
+            //hax_panic_vcpu(vcpu, "undefined opcode\n");
+            //stack_dump(vcpu);
+            //dump_vmcs(vcpu);
             //return vcpu_emulate_insn(vcpu);
             break;
         }
